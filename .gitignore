@@ -1,0 +1,30 @@
+# Python / Django
+__pycache__/
+*.py[cod]
+*.sqlite3
+backend/staticfiles/
+backend/media/
+.venv/
+venv/
+*.egg-info/
+
+# Environnement / secrets
+.env
+*.env.local
+
+# Node / Next.js (frontend-web, à venir)
+node_modules/
+.next/
+out/
+
+# Flutter (mobile, à venir)
+mobile/.dart_tool/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/build/
+mobile/.pub-cache/
+
+# Éditeurs / OS
+.vscode/
+.idea/
+.DS_Store

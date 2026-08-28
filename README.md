@@ -8,14 +8,14 @@ Lancement au Mali, conçue dès le départ pour être accessible dans plusieurs 
 
 ## Statut
 
-Projet en phase de cadrage. Voir [`docs/01-ANALYSE-ARCHITECTURE.md`](docs/01-ANALYSE-ARCHITECTURE.md) pour l'analyse complète et l'architecture technique avant tout développement.
+Analyse et architecture validées (voir [`docs/01-ANALYSE-ARCHITECTURE.md`](docs/01-ANALYSE-ARCHITECTURE.md)). Squelette backend en cours de construction (apps Django + modèles + migrations) — voir [`backend/README.md`](backend/README.md) pour l'installation locale. Pas encore de routes API métier, pas de frontend, pas de mobile.
 
-## Structure prévue
+## Structure
 
 ```
 sgt-academy/
 ├── docs/            # documentation et guides
-├── backend/         # Django + Django REST Framework
-├── frontend-web/    # Next.js (site public, SEO)
-└── mobile/          # Flutter (mobile + web authentifié)
+├── backend/         # Django + Django REST Framework (squelette : apps + modèles + migrations)
+├── frontend-web/    # Next.js (site public, SEO) — à venir
+└── mobile/          # Flutter (mobile + web authentifié) — à venir
 ```
