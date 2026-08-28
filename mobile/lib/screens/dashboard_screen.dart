@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../providers/providers.dart';
 import '../widgets/course_progress_card.dart';
+import '../widgets/logo_mark.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -19,7 +20,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SGT Academy'),
+        title: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            LogoMark(size: 28),
+            SizedBox(width: 10),
+            Text('SGT Academy'),
+          ],
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),

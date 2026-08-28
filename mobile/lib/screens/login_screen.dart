@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../providers/providers.dart';
 import '../services/auth_service.dart';
+import '../widgets/logo_mark.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -46,6 +47,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const Center(child: LogoMark(size: 56)),
+                const SizedBox(height: 16),
                 Text('SGT Academy', style: Theme.of(context).textTheme.headlineMedium, textAlign: TextAlign.center),
                 const SizedBox(height: 8),
                 const Text('Connectez-vous pour accéder à vos formations.',
