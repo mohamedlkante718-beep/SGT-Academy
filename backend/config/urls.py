@@ -8,6 +8,8 @@ urlpatterns = [
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/v1/auth/", include("apps.accounts.urls")),
     path("api/v1/courses/", include("apps.courses.urls")),
-    # Prochaines routes (learning, assessments, payments, certificates, ...)
-    # ajoutées au fur et à mesure, une fois chaque parcours implémenté et testé.
+    path("api/v1/", include("apps.payments.urls")),
+    path("api/v1/", include("apps.learning.urls")),
+    path("api/v1/", include("apps.assessments.urls")),
+    path("api/v1/", include("apps.certificates.urls")),
 ]

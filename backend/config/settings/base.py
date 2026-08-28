@@ -128,6 +128,7 @@ REST_FRAMEWORK = {
         "anon": "60/minute",
         "user": "300/minute",
         "login": "10/minute",
+        "verify": "30/minute",
     },
 }
 
@@ -145,6 +146,9 @@ SPECTACULAR_SETTINGS = {
 }
 
 CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
+
+# --- Site public (pour construire l'URL complète encodée dans le QR code des certificats) ---
+PUBLIC_SITE_URL = config("PUBLIC_SITE_URL", default="")
 
 # --- Multi-pays / multi-devises (§36) ---
 DEFAULT_CURRENCY = config("DEFAULT_CURRENCY", default="XOF")

@@ -1,24 +1,44 @@
 # SGT Academy — Backend (Django + DRF)
 
-Configuration, apps Django, modèles et premiers endpoints API correspondant au schéma de base de données défini dans [`../docs/01-ANALYSE-ARCHITECTURE.md`](../docs/01-ANALYSE-ARCHITECTURE.md). Aucun paiement réel, aucun envoi d'email, aucun stockage vidéo n'est encore implémenté.
+Configuration, apps Django, modèles et API couvrant tout le parcours MVP décrit dans [`../docs/01-ANALYSE-ARCHITECTURE.md`](../docs/01-ANALYSE-ARCHITECTURE.md) : visiteur → catalogue → compte → achat (paiement manuel) → accès → cours → progression → quiz → examen → certificat → vérification publique.
 
-## API disponible (v0.2 — authentification + catalogue public)
+## Ce qui n'est PAS encore réel (§53 : jamais simulé comme fonctionnel)
+
+- **Mobile Money / carte bancaire** : refusés explicitement (HTTP 501) tant qu'aucun prestataire (CinetPay/PayDunya/Kkiapay/FedaPay...) n'est contractualisé et configuré. Seul le **paiement manuel** débloque réellement l'accès aujourd'hui.
+- **PDF du certificat** (mise en page, logo, signature) : non généré. Seuls l'enregistrement en base et le QR code (image PNG réelle, pointant vers `/verify/{code}`) sont produits.
+- **Emails/SMS de notification** : aucun envoi réel.
+- **Stockage S3** : fonctionne en local sur disque ; le branchement à un vrai bucket (R2/B2/S3) se fait via les variables `AWS_*` en production, non testé faute d'identifiants.
+
+## API disponible (v0.3 — parcours complet MVP)
 
 | Méthode | Endpoint | Description | Auth |
 |---|---|---|---|
 | POST | `/api/v1/auth/register/` | Créer un compte apprenant (§10) | Non |
 | POST | `/api/v1/auth/login/` | Connexion, retourne access + refresh JWT | Non |
-| POST | `/api/v1/auth/refresh/` | Renouveler l'access token | Non (refresh token requis) |
+| POST | `/api/v1/auth/refresh/` | Renouveler l'access token | Non |
 | POST | `/api/v1/auth/logout/` | Invalide le refresh token (blacklist) | Oui |
 | GET | `/api/v1/auth/me/` | Profil de l'utilisateur connecté | Oui |
-| GET | `/api/v1/courses/` | Catalogue public (filtres : `category`, `level`, `certificate_available`, `min_price`, `max_price`; recherche `search`; tri `ordering`) | Non |
-| GET | `/api/v1/courses/{slug}/` | Détail d'une formation publiée, avec programme (modules/leçons) | Non |
+| GET | `/api/v1/courses/` | Catalogue public (filtres, recherche, tri) | Non |
+| GET | `/api/v1/courses/{slug}/` | Détail d'une formation publiée + programme | Non |
+| POST | `/api/v1/courses/{slug}/purchase/` | Démarre l'achat (paiement manuel opérationnel ; coupon optionnel) | Oui |
+| GET | `/api/v1/payments/{reference}/` | Statut d'un paiement (propriétaire) | Oui |
+| PATCH | `/api/v1/payments/{reference}/proof/` | Soumettre référence/preuve de paiement manuel | Oui |
+| GET | `/api/v1/my-courses/` | Mes formations + progression (§13) | Oui |
+| GET | `/api/v1/courses/{slug}/progress/` | Programme détaillé + statut par leçon (accès réservé aux inscrits) | Oui |
+| POST | `/api/v1/lessons/{id}/complete/` | Marquer une leçon terminée (met à jour la progression) | Oui |
+| GET | `/api/v1/quizzes/{id}/` | Questions d'un quiz (sans les bonnes réponses) | Oui (inscrit) |
+| POST | `/api/v1/quizzes/{id}/submit/` | Corrige immédiatement, renvoie le score | Oui (inscrit) |
+| POST | `/api/v1/exams/{id}/start/` | Démarre une tentative d'examen (respecte le nombre max) | Oui (inscrit) |
+| POST | `/api/v1/exams/{id}/submit/` | Corrige l'examen ; déclenche le certificat si réussi | Oui (inscrit) |
+| GET | `/api/v1/certificates/` | Mes certificats | Oui |
+| GET | `/api/v1/certificates/{id}/` | Détail (propriétaire uniquement) | Oui |
+| GET | `/api/v1/certificates/verify/{code}/` | Vérification publique (§19), limitée à 30 req/min | Non |
 
-Seules les formations au statut `PUBLISHED` apparaissent dans l'API publique. Les vidéos ne sont **jamais** exposées : seules les métadonnées des leçons (titre, durée, ordre) sont renvoyées — la diffusion protégée viendra avec le parcours d'achat/inscription (prochaine étape).
+Points de sécurité déjà en place : un paiement `pending` ne débloque jamais l'accès (seul un passage serveur à `PAID` le fait, via signal) ; les leçons hors aperçu sont invisibles/non complétables sans inscription ; un quiz/examen refuse l'accès si l'utilisateur n'est pas inscrit ; les bonnes réponses ne sont jamais envoyées au navigateur ; un certificat n'est consultable en détail que par son propriétaire, mais la vérification par code reste publique et journalisée.
 
 Documentation interactive : `/api/docs/`.
 
-Tests : `python manage.py test apps.accounts apps.courses` (11 tests, tous verts) — couvrent notamment §40.1 (catalogue public sans compte) et l'isolation des formations non publiées.
+Tests : `python manage.py test` — **38 tests, tous verts**, couvrant notamment : accès refusé aux formations non payées, paiement `pending` ne débloquant rien, double-soumission d'examen bloquée, nombre max de tentatives respecté, certificat émis automatiquement à la réussite, code de vérification unique, formation brouillon invisible publiquement.
 
 ## Apps Django
 
