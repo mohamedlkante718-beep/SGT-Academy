@@ -2,6 +2,10 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+admin.site.site_header = "SGT Academy"
+admin.site.site_title = "SGT Academy"
+admin.site.index_title = "Administration"
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
