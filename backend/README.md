@@ -108,7 +108,12 @@ Ceci met en ligne le backend (API + `/admin/`) à une adresse `https://....railw
 1. **Créer un compte Railway** : allez sur [railway.com](https://railway.com/), cliquez sur « Login » puis connectez-vous avec votre compte GitHub (`mohamedlkante718-beep`). C'est gratuit pour démarrer (un petit crédit mensuel offert).
 2. **Créer un nouveau projet** : sur le tableau de bord Railway, cliquez sur **« New Project »** → **« Deploy from GitHub repo »**. Autorisez Railway à accéder à vos dépôts si demandé, puis choisissez **`SGT-Academy`**.
 3. **Indiquer le bon dossier** : Railway doit construire depuis `backend/`, pas la racine du dépôt. Ouvrez le service créé → onglet **Settings** → section **Build** → **Root Directory** : entrez `backend`.
-4. **Ajouter une base de données PostgreSQL** : dans le projet, cliquez sur **« + New »** → **« Database »** → **« Add PostgreSQL »**. Railway crée automatiquement la variable `DATABASE_URL` et la relie à votre service — vous n'avez rien à copier vous-même.
+4. **Ajouter une base de données PostgreSQL** : dans le projet, cliquez sur **« + New »** → **« Database »** → **« Add PostgreSQL »**.
+   **Important** : Railway ne relie pas toujours `DATABASE_URL` automatiquement à votre service. Vérifiez : sur le service `SGT-Academy` → onglet **Variables**, cherchez `DATABASE_URL`. Si elle est absente, ajoutez-la vous-même (**« + New Variable »**) avec pour valeur exactement :
+   ```
+   ${{Postgres.DATABASE_URL}}
+   ```
+   (remplacez `Postgres` par le nom exact de votre service base de données si différent). Vous pouvez vérifier que c'est bien pris en compte via la **Console** du service avec `echo $DATABASE_URL` — si la commande n'affiche rien, la variable n'est pas reliée et toute donnée créée (y compris votre superuser) disparaîtra au prochain déploiement.
 5. **Ajouter les variables d'environnement** : sur votre service (pas la base de données) → onglet **Variables** → ajoutez :
    - `DJANGO_ENV` = `prod`
    - `SECRET_KEY` = une longue chaîne aléatoire (générez-en une avec [ce générateur](https://djecrety.ir/) par exemple, ou demandez-moi de vous en fournir une)
