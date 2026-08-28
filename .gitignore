@@ -12,7 +12,7 @@ venv/
 .env
 *.env.local
 
-# Node / Next.js (frontend-web, à venir)
+# Node / Next.js (frontend-web)
 node_modules/
 .next/
 out/
