@@ -10,6 +10,10 @@ class Quiz(TimeStampedModel):
     title = models.CharField(max_length=200)
     pass_score_percent = models.PositiveSmallIntegerField(default=70)
 
+    class Meta:
+        verbose_name = "quiz"
+        verbose_name_plural = "quiz"
+
     def __str__(self):
         return self.title
 
@@ -22,6 +26,10 @@ class Exam(TimeStampedModel):
     max_attempts = models.PositiveSmallIntegerField(default=3)
     pass_score_percent = models.PositiveSmallIntegerField(default=70)
     randomize_questions = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "examen"
+        verbose_name_plural = "examens"
 
     def __str__(self):
         return self.title
@@ -58,6 +66,8 @@ class Question(TimeStampedModel):
                 name="question_belongs_to_quiz_xor_exam",
             )
         ]
+        verbose_name = "question"
+        verbose_name_plural = "questions"
 
     def __str__(self):
         return self.text[:80]
@@ -71,6 +81,8 @@ class Answer(TimeStampedModel):
 
     class Meta:
         ordering = ["order"]
+        verbose_name = "réponse"
+        verbose_name_plural = "réponses"
 
     def __str__(self):
         return self.text
@@ -83,6 +95,10 @@ class QuizAttempt(TimeStampedModel):
     submitted_at = models.DateTimeField(null=True, blank=True)
     score_percent = models.PositiveSmallIntegerField(null=True, blank=True)
     passed = models.BooleanField(null=True)
+
+    class Meta:
+        verbose_name = "tentative de quiz"
+        verbose_name_plural = "tentatives de quiz"
 
     def __str__(self):
         return f"{self.user} — {self.quiz} ({self.score_percent}%)"
@@ -98,6 +114,10 @@ class QuizResult(TimeStampedModel):
     is_correct = models.BooleanField(default=False)
     points_awarded = models.PositiveSmallIntegerField(default=0)
 
+    class Meta:
+        verbose_name = "résultat de quiz"
+        verbose_name_plural = "résultats de quiz"
+
 
 class ExamAttempt(TimeStampedModel):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="exam_attempts")
@@ -112,6 +132,8 @@ class ExamAttempt(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["user", "exam", "attempt_number"], name="unique_exam_attempt_number"),
         ]
+        verbose_name = "tentative d'examen"
+        verbose_name_plural = "tentatives d'examen"
 
     def __str__(self):
         return f"{self.user} — {self.exam} #{self.attempt_number}"

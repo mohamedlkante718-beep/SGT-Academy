@@ -63,6 +63,8 @@ class User(AbstractBaseUser, PermissionsMixin, SoftDeleteModel):
 
     class Meta:
         indexes = [models.Index(fields=["phone"])]
+        verbose_name = "utilisateur"
+        verbose_name_plural = "utilisateurs"
 
     def __str__(self):
         return self.email
@@ -96,6 +98,10 @@ class Role(models.Model):
     description = models.CharField(max_length=255, blank=True)
     permissions = models.ManyToManyField("Permission", blank=True, related_name="roles")
 
+    class Meta:
+        verbose_name = "rôle"
+        verbose_name_plural = "rôles"
+
     def __str__(self):
         return self.get_name_display()
 
@@ -105,6 +111,10 @@ class Permission(models.Model):
 
     codename = models.CharField(max_length=100, unique=True)
     description = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        verbose_name = "permission"
+        verbose_name_plural = "permissions"
 
     def __str__(self):
         return self.codename
@@ -118,6 +128,8 @@ class UserRole(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["user", "role"], name="unique_user_role"),
         ]
+        verbose_name = "rôle utilisateur"
+        verbose_name_plural = "rôles utilisateur"
 
     def __str__(self):
         return f"{self.user} — {self.role}"
@@ -132,6 +144,10 @@ class Profile(TimeStampedModel):
     birth_date = models.DateField(null=True, blank=True)
     preferred_language = models.CharField(max_length=5, default="fr")
     timezone = models.CharField(max_length=64, default="Africa/Bamako")
+
+    class Meta:
+        verbose_name = "profil"
+        verbose_name_plural = "profils"
 
     def __str__(self):
         return f"Profil de {self.user}"

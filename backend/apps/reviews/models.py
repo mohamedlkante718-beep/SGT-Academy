@@ -23,6 +23,8 @@ class Review(TimeStampedModel):
             models.CheckConstraint(check=models.Q(rating__gte=1) & models.Q(rating__lte=5), name="rating_between_1_and_5"),
         ]
         ordering = ["-created_at"]
+        verbose_name = "avis"
+        verbose_name_plural = "avis"
 
     def __str__(self):
         return f"{self.user} — {self.course} ({self.rating}★)"

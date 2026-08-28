@@ -5,3 +5,4 @@ class LearningConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.learning"
     label = "learning"
+    verbose_name = "Apprentissage"

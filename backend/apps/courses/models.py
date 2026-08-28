@@ -12,7 +12,8 @@ class Category(TimeStampedModel):
     icon = models.CharField(max_length=50, blank=True, help_text="Nom d'icône (ex: map, leaf, laptop)")
 
     class Meta:
-        verbose_name_plural = "categories"
+        verbose_name = "catégorie"
+        verbose_name_plural = "catégories"
         ordering = ["name"]
 
     def save(self, *args, **kwargs):
@@ -31,6 +32,10 @@ class Instructor(TimeStampedModel):
     headline = models.CharField(max_length=255, blank=True, help_text="Ex: Expert SIG & télédétection")
     bio = models.TextField(blank=True)
     is_verified = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "formateur"
+        verbose_name_plural = "formateurs"
 
     def __str__(self):
         return self.user.get_full_name() or str(self.user)
@@ -89,6 +94,8 @@ class Course(SoftDeleteModel):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["status"]), models.Index(fields=["slug"])]
+        verbose_name = "formation"
+        verbose_name_plural = "formations"
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -107,6 +114,8 @@ class CourseCategory(models.Model):
         constraints = [
             models.UniqueConstraint(fields=["course", "category"], name="unique_course_category"),
         ]
+        verbose_name = "catégorie de formation"
+        verbose_name_plural = "catégories de formation"
 
 
 class InstructorCourse(TimeStampedModel):
@@ -118,6 +127,8 @@ class InstructorCourse(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["instructor", "course"], name="unique_instructor_course"),
         ]
+        verbose_name = "formateur de formation"
+        verbose_name_plural = "formateurs de formation"
 
 
 class Module(TimeStampedModel):
@@ -131,6 +142,8 @@ class Module(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["course", "order"], name="unique_module_order_per_course"),
         ]
+        verbose_name = "module"
+        verbose_name_plural = "modules"
 
     def __str__(self):
         return f"{self.course.title} — Module {self.order}: {self.title}"
@@ -153,6 +166,8 @@ class Lesson(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["module", "order"], name="unique_lesson_order_per_module"),
         ]
+        verbose_name = "leçon"
+        verbose_name_plural = "leçons"
 
     def __str__(self):
         return self.title
@@ -173,6 +188,8 @@ class LessonResource(TimeStampedModel):
 
     class Meta:
         ordering = ["lesson", "order"]
+        verbose_name = "ressource de leçon"
+        verbose_name_plural = "ressources de leçon"
 
     def __str__(self):
         return self.title

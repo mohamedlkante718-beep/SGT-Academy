@@ -5,3 +5,4 @@ class CouponsConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "apps.coupons"
     label = "coupons"
+    verbose_name = "Coupons"

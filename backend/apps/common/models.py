@@ -59,6 +59,8 @@ class AuditLog(TimeStampedModel):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["target_type", "target_id"])]
+        verbose_name = "journal d'audit"
+        verbose_name_plural = "journaux d'audit"
 
     def __str__(self):
         return f"{self.action} — {self.target_type}:{self.target_id}"
@@ -71,6 +73,10 @@ class Setting(models.Model):
     value = models.JSONField(default=dict, blank=True)
     description = models.CharField(max_length=255, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "paramètre"
+        verbose_name_plural = "paramètres"
 
     def __str__(self):
         return self.key

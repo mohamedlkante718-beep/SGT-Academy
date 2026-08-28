@@ -67,6 +67,8 @@ class Payment(TimeStampedModel):
     class Meta:
         indexes = [models.Index(fields=["status"]), models.Index(fields=["reference"])]
         ordering = ["-created_at"]
+        verbose_name = "paiement"
+        verbose_name_plural = "paiements"
 
     def __str__(self):
         return f"{self.reference} — {self.user} — {self.status}"
@@ -83,6 +85,8 @@ class PaymentTransaction(TimeStampedModel):
 
     class Meta:
         ordering = ["-created_at"]
+        verbose_name = "transaction de paiement"
+        verbose_name_plural = "transactions de paiement"
 
     def __str__(self):
         return f"{self.payment.reference} — {self.provider} — {self.status}"

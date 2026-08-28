@@ -24,6 +24,10 @@ class Coupon(TimeStampedModel):
     courses = models.ManyToManyField(Course, blank=True, related_name="coupons", help_text="Vide = toutes les formations")
     is_active = models.BooleanField(default=True)
 
+    class Meta:
+        verbose_name = "coupon"
+        verbose_name_plural = "coupons"
+
     def __str__(self):
         return self.code
 
@@ -37,6 +41,8 @@ class CouponUsage(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["coupon", "user"], name="unique_coupon_usage_per_user"),
         ]
+        verbose_name = "utilisation de coupon"
+        verbose_name_plural = "utilisations de coupon"
 
     def __str__(self):
         return f"{self.coupon} — {self.user}"

@@ -12,6 +12,10 @@ class Company(TimeStampedModel):
     contact_name = models.CharField(max_length=200, blank=True)
     country = models.CharField(max_length=2, default="ML")
 
+    class Meta:
+        verbose_name = "entreprise"
+        verbose_name_plural = "entreprises"
+
     def __str__(self):
         return self.name
 
@@ -29,6 +33,8 @@ class CompanyUser(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["company", "user"], name="unique_company_user"),
         ]
+        verbose_name = "employé d'entreprise"
+        verbose_name_plural = "employés d'entreprise"
 
     def __str__(self):
         return f"{self.user} @ {self.company} ({self.role})"
@@ -43,6 +49,10 @@ class CompanyLicense(TimeStampedModel):
     used_seats = models.PositiveIntegerField(default=0)
     purchased_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "licence entreprise"
+        verbose_name_plural = "licences entreprise"
 
     def __str__(self):
         return f"{self.company} — {self.course} ({self.used_seats}/{self.total_seats})"

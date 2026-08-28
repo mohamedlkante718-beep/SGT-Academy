@@ -31,6 +31,8 @@ class Certificate(TimeStampedModel):
     class Meta:
         indexes = [models.Index(fields=["code"])]
         ordering = ["-issued_at"]
+        verbose_name = "certificat"
+        verbose_name_plural = "certificats"
 
     def __str__(self):
         return self.code
@@ -48,6 +50,8 @@ class CertificateVerification(TimeStampedModel):
 
     class Meta:
         ordering = ["-created_at"]
+        verbose_name = "vérification de certificat"
+        verbose_name_plural = "vérifications de certificat"
 
     def __str__(self):
         return f"{self.code_checked} — {'valide' if self.was_valid else 'invalide'}"

@@ -20,6 +20,8 @@ class Notification(TimeStampedModel):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["user", "is_read"])]
+        verbose_name = "notification"
+        verbose_name_plural = "notifications"
 
     def __str__(self):
         return f"{self.user} — {self.title}"

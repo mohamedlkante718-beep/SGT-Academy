@@ -30,6 +30,8 @@ class Enrollment(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["user", "course"], name="unique_enrollment_per_user_course"),
         ]
+        verbose_name = "inscription"
+        verbose_name_plural = "inscriptions"
 
     def __str__(self):
         return f"{self.user} → {self.course}"
@@ -50,6 +52,8 @@ class LessonProgress(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["user", "lesson"], name="unique_lesson_progress_per_user"),
         ]
+        verbose_name = "progression de leçon"
+        verbose_name_plural = "progressions de leçon"
 
     def __str__(self):
         return f"{self.user} — {self.lesson} ({self.status})"
@@ -68,6 +72,8 @@ class CourseProgress(TimeStampedModel):
         constraints = [
             models.UniqueConstraint(fields=["user", "course"], name="unique_course_progress_per_user"),
         ]
+        verbose_name = "progression de formation"
+        verbose_name_plural = "progressions de formation"
 
     def __str__(self):
         return f"{self.user} — {self.course} ({self.percent_complete}%)"
