@@ -3,6 +3,10 @@ from decouple import config
 
 DEBUG = False
 
+_railway_domain = config("RAILWAY_PUBLIC_DOMAIN", default="")
+if _railway_domain:
+    CSRF_TRUSTED_ORIGINS = [f"https://{_railway_domain}"]
+
 SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
@@ -18,7 +22,7 @@ STORAGES = {
         "BACKEND": "storages.backends.s3.S3Storage",
     },
     "staticfiles": {
-        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 

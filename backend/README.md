@@ -101,6 +101,32 @@ Tests : `python manage.py test` — **38 tests, tous verts**, couvrant notamment
 - **Erreur de connexion PostgreSQL** → vérifiez que le service PostgreSQL est démarré et que `DATABASE_URL` correspond exactement à vos identifiants, ou laissez `DATABASE_URL` vide pour utiliser SQLite en attendant.
 - **`SECRET_KEY manquant`** → le fichier `.env` n'existe pas ou est vide ; recopiez `.env.example`.
 
+## Déploiement sur Railway (pour avoir un vrai lien, sans rien installer)
+
+Ceci met en ligne le backend (API + `/admin/`) à une adresse `https://....railway.app` que vous pouvez ouvrir depuis n'importe quel navigateur, sans installation locale.
+
+1. **Créer un compte Railway** : allez sur [railway.com](https://railway.com/), cliquez sur « Login » puis connectez-vous avec votre compte GitHub (`mohamedlkante718-beep`). C'est gratuit pour démarrer (un petit crédit mensuel offert).
+2. **Créer un nouveau projet** : sur le tableau de bord Railway, cliquez sur **« New Project »** → **« Deploy from GitHub repo »**. Autorisez Railway à accéder à vos dépôts si demandé, puis choisissez **`SGT-Academy`**.
+3. **Indiquer le bon dossier** : Railway doit construire depuis `backend/`, pas la racine du dépôt. Ouvrez le service créé → onglet **Settings** → section **Build** → **Root Directory** : entrez `backend`.
+4. **Ajouter une base de données PostgreSQL** : dans le projet, cliquez sur **« + New »** → **« Database »** → **« Add PostgreSQL »**. Railway crée automatiquement la variable `DATABASE_URL` et la relie à votre service — vous n'avez rien à copier vous-même.
+5. **Ajouter les variables d'environnement** : sur votre service (pas la base de données) → onglet **Variables** → ajoutez :
+   - `DJANGO_ENV` = `prod`
+   - `SECRET_KEY` = une longue chaîne aléatoire (générez-en une avec [ce générateur](https://djecrety.ir/) par exemple, ou demandez-moi de vous en fournir une)
+   - `DEBUG` = `False`
+
+   Ne renseignez pas `ALLOWED_HOSTS` ni `CSRF_TRUSTED_ORIGINS` : le projet les déduit automatiquement du domaine Railway.
+6. **Générer un domaine public** : onglet **Settings** → section **Networking** → **« Generate Domain »**. Railway vous donne une adresse du type `sgt-academy-production.up.railway.app`.
+7. **Déployer** : Railway construit et démarre automatiquement à chaque push sur `main` (ou cliquez sur **« Deploy »** manuellement la première fois). Le démarrage applique les migrations tout seul (`start.sh`).
+8. **Créer votre compte super administrateur** : onglet du service → **« Shell »** (ou via le bouton **⋮ → Run command**) et exécutez :
+   ```
+   python manage.py createsuperuser
+   ```
+9. **Tester** : ouvrez `https://<votre-domaine-railway>.up.railway.app/admin/` — connectez-vous avec le superuser créé. `/api/docs/` affiche la documentation de l'API.
+
+**Consulter les logs** : onglet **« Deployments »** → cliquez sur le déploiement en cours → les logs s'affichent en direct (utile en cas d'erreur au démarrage).
+
+**Limites à ce stade** : sans les variables `AWS_*` (stockage S3/R2/B2), l'upload d'images (logo, couvertures de formation) ne fonctionnera pas encore — l'admin reste utilisable pour tout le reste (formations, paiements manuels, utilisateurs, coupons...).
+
 ## Prochaine étape
 
-Ajout des routes API (`/api/v1/...`) : inscription/connexion (JWT), catalogue de formations, achat, progression, quiz/examen, certificats — app par app, avec tests, plutôt que tout d'un coup.
+L'API MVP complète existe déjà (voir plus haut). Prochaines pistes : brancher un vrai stockage S3/R2/B2 pour les images/vidéos, puis un prestataire de paiement Mali une fois le contrat en place.
