@@ -6,6 +6,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
-    # Les routes /api/v1/... des applications seront ajoutées au fur et à mesure
-    # (accounts, courses, learning, assessments, payments, certificates, ...).
+    path("api/v1/auth/", include("apps.accounts.urls")),
+    path("api/v1/courses/", include("apps.courses.urls")),
+    # Prochaines routes (learning, assessments, payments, certificates, ...)
+    # ajoutées au fur et à mesure, une fois chaque parcours implémenté et testé.
 ]

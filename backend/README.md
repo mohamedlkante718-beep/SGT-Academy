@@ -1,6 +1,24 @@
 # SGT Academy — Backend (Django + DRF)
 
-Squelette du backend : configuration, apps Django et modèles correspondant au schéma de base de données défini dans [`../docs/01-ANALYSE-ARCHITECTURE.md`](../docs/01-ANALYSE-ARCHITECTURE.md). Aucune route API métier, aucun paiement réel, aucun envoi d'email n'est encore implémenté — c'est l'étape suivante.
+Configuration, apps Django, modèles et premiers endpoints API correspondant au schéma de base de données défini dans [`../docs/01-ANALYSE-ARCHITECTURE.md`](../docs/01-ANALYSE-ARCHITECTURE.md). Aucun paiement réel, aucun envoi d'email, aucun stockage vidéo n'est encore implémenté.
+
+## API disponible (v0.2 — authentification + catalogue public)
+
+| Méthode | Endpoint | Description | Auth |
+|---|---|---|---|
+| POST | `/api/v1/auth/register/` | Créer un compte apprenant (§10) | Non |
+| POST | `/api/v1/auth/login/` | Connexion, retourne access + refresh JWT | Non |
+| POST | `/api/v1/auth/refresh/` | Renouveler l'access token | Non (refresh token requis) |
+| POST | `/api/v1/auth/logout/` | Invalide le refresh token (blacklist) | Oui |
+| GET | `/api/v1/auth/me/` | Profil de l'utilisateur connecté | Oui |
+| GET | `/api/v1/courses/` | Catalogue public (filtres : `category`, `level`, `certificate_available`, `min_price`, `max_price`; recherche `search`; tri `ordering`) | Non |
+| GET | `/api/v1/courses/{slug}/` | Détail d'une formation publiée, avec programme (modules/leçons) | Non |
+
+Seules les formations au statut `PUBLISHED` apparaissent dans l'API publique. Les vidéos ne sont **jamais** exposées : seules les métadonnées des leçons (titre, durée, ordre) sont renvoyées — la diffusion protégée viendra avec le parcours d'achat/inscription (prochaine étape).
+
+Documentation interactive : `/api/docs/`.
+
+Tests : `python manage.py test apps.accounts apps.courses` (11 tests, tous verts) — couvrent notamment §40.1 (catalogue public sans compte) et l'isolation des formations non publiées.
 
 ## Apps Django
 
