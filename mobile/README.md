@@ -48,6 +48,17 @@ flutter run -d chrome --dart-define=API_BASE_URL=https://votre-domaine.up.railwa
 - **Écran blanc au chargement** → ouvrez la console du navigateur. Si vous voyez une erreur liée à `canvaskit`/`gstatic.com`, votre réseau bloque ce CDN (pare-feu d'entreprise) ; relancez avec `--web-renderer html`.
 - **« Impossible de charger vos formations »** → le backend n'est pas démarré, ou `API_BASE_URL` ne correspond pas à son adresse réelle.
 
+## Déploiement sur Railway (pour avoir un vrai lien, sans rien installer)
+
+Le dossier `dist/` contient une version déjà compilée de l'app (web), servie par un petit serveur nginx via `Dockerfile`. C'est un **instantané** : il ne se reconstruit pas tout seul à chaque changement de code — voir la note en bas.
+
+1. Sur le tableau de bord Railway, dans le **même projet** que le backend (`SGT-Academy` + `Postgres`), cliquez sur **« + New »** → **« GitHub Repo »** → choisissez à nouveau `SGT-Academy`. Un nouveau service est créé.
+2. Sur ce nouveau service → **Settings** → **Root Directory** : entrez `mobile`.
+3. Toujours dans **Settings** → **Networking** → **« Generate Domain »**. Utilisez **le port `80`** cette fois (c'est le port sur lequel nginx écoute).
+4. Attendez le déploiement (icône verte). Ouvrez l'adresse générée — l'application s'affiche directement, plus besoin d'installer quoi que ce soit.
+
+**Important — ceci est un instantané, pas du direct** : si le code de l'app change ensuite, il faut regénérer `dist/` (`flutter build web --dart-define=API_BASE_URL=...`) et pousser à nouveau sur GitHub pour que ce service se mette à jour. Demandez-le si besoin, la commande est rapide à relancer.
+
 ## Prochaine étape
 
 Lecteur vidéo (une fois le stockage protégé branché côté backend), quiz/examen, puis build Android/iOS réels.

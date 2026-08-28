@@ -3,6 +3,12 @@ from decouple import config
 
 DEBUG = False
 
+# L'API est appelée depuis plusieurs origines (site public, app mobile web,
+# éventuels futurs domaines) et n'utilise que des tokens JWT en en-tête
+# (jamais de cookie de session) : élargir CORS à toutes origines n'expose pas
+# de session. À restreindre à une liste explicite si des cookies apparaissent.
+CORS_ALLOW_ALL_ORIGINS = True
+
 _railway_domain = config("RAILWAY_PUBLIC_DOMAIN", default="")
 if _railway_domain:
     CSRF_TRUSTED_ORIGINS = [f"https://{_railway_domain}"]
