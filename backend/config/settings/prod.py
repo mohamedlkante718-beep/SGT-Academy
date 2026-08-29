@@ -1,7 +1,7 @@
 from .base import *  # noqa
 from decouple import config
 
-DEBUG = False
+DEBUG = config("DEBUG", default=False, cast=bool)
 
 # L'API est appelée depuis plusieurs origines (site public, app mobile web,
 # éventuels futurs domaines) et n'utilise que des tokens JWT en en-tête
