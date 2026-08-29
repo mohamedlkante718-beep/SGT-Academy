@@ -44,6 +44,10 @@ class CourseAdmin(admin.ModelAdmin):
     list_filter = ("status", "level", "certificate_available")
     search_fields = ("title", "slug")
     prepopulated_fields = {"slug": ("title",)}
+    # deleted_at ne doit jamais être rempli à la main : c'est l'action "Supprimer"
+    # de la liste qui s'en charge (SoftDeleteModel.delete()) — un remplissage
+    # accidentel via le formulaire cache silencieusement la formation partout.
+    exclude = ("deleted_at",)
     inlines = [ModuleInline]
 
 
