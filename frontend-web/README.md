@@ -53,11 +53,24 @@ construit ici : il est prévu en Flutter (mobile + web), séparément, car sans 
    être démarré (`python manage.py runserver`) et contenir au moins une formation
    publiée pour que le catalogue affiche quelque chose.
 
+## Déploiement sur Railway (pour avoir un vrai lien, sans rien installer)
+
+Même projet Railway que le backend et l'app mobile — encore un service.
+
+1. Sur le tableau de bord Railway, dans le projet `SGT-Academy` : **« + New »** → **« GitHub Repo »** → choisissez à nouveau `SGT-Academy`.
+2. Sur ce nouveau service → **Settings** → **Root Directory** : `frontend-web`.
+3. Toujours **Settings** → **Variables** → ajoutez :
+   - `NEXT_PUBLIC_API_BASE_URL` = `https://sgt-academy-production.up.railway.app/api/v1` (l'adresse de votre backend déjà en ligne)
+4. **Settings** → **Networking** → **« Generate Domain »** → port **`3000`**.
+5. Attendez le déploiement (icône verte), puis ouvrez l'adresse générée.
+
+Railway détecte automatiquement qu'il s'agit d'un projet Next.js (pas besoin de Dockerfile ici) et exécute `npm install`, `npm run build` puis `npm run start`.
+
 ## Erreurs possibles
 
 - **« Le catalogue n'a pas pu être chargé »** sur la page d'accueil/catalogue → le backend
-  Django n'est pas démarré, ou `NEXT_PUBLIC_API_BASE_URL` dans `.env.local` ne correspond
-  pas à son adresse réelle.
-- **Erreur CORS dans la console du navigateur** → en développement, le backend autorise
-  déjà toutes les origines (`CORS_ALLOW_ALL_ORIGINS`) ; en production, ajoutez l'URL du
-  site public à `CORS_ALLOWED_ORIGINS` dans le `.env` du backend.
+  Django n'est pas démarré, ou `NEXT_PUBLIC_API_BASE_URL` ne correspond pas à son adresse réelle.
+- **Erreur CORS dans la console du navigateur** → le backend autorise déjà toutes les
+  origines en développement comme en production (`CORS_ALLOW_ALL_ORIGINS`), donc ceci ne
+  devrait plus arriver ; si ça arrive quand même, vérifiez que le backend a bien redéployé
+  après ce changement.
