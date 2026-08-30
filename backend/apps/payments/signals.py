@@ -1,7 +1,13 @@
+import logging
+
+from django.conf import settings
+from django.core.mail import send_mail
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
 from .models import Payment
+
+logger = logging.getLogger(__name__)
 
 
 @receiver(post_save, sender=Payment)
@@ -15,8 +21,39 @@ def create_enrollment_on_paid(sender, instance: Payment, **kwargs):
 
     from apps.learning.models import Enrollment
 
-    Enrollment.objects.get_or_create(
+    enrollment, created = Enrollment.objects.get_or_create(
         user=instance.user,
         course=instance.course,
         defaults={"source": Enrollment.PURCHASE},
     )
+
+    if created:
+        _send_payment_confirmation_email(instance)
+
+
+def _send_payment_confirmation_email(payment: Payment):
+    """
+    Prévient l'apprenant que son paiement est validé, avec un lien direct vers
+    l'application. N'envoie rien si aucun identifiant email n'est configuré
+    (backend "console" par défaut) et ne doit jamais faire échouer la
+    validation du paiement si l'envoi rate.
+    """
+    app_url = settings.MOBILE_APP_URL or "#"
+    first_name = payment.user.first_name or ""
+    try:
+        send_mail(
+            subject="Votre paiement est validé — accédez à votre formation",
+            message=(
+                f"Bonjour {first_name},\n\n"
+                f"Votre paiement pour la formation « {payment.course.title} » a été validé.\n"
+                f"Connectez-vous dès maintenant pour commencer : {app_url}\n\n"
+                f"À bientôt,\nL'équipe SGT Academy"
+            ),
+            from_email=None,
+            recipient_list=[payment.user.email],
+            fail_silently=False,
+        )
+    except Exception:
+        logger.exception(
+            "Échec de l'envoi de l'email de confirmation de paiement (référence=%s)", payment.reference
+        )

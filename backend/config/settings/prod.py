@@ -47,3 +47,16 @@ if AWS_STORAGE_BUCKET_NAME and AWS_ACCESS_KEY_ID:
     if _aws_region:
         AWS_S3_REGION_NAME = _aws_region
     AWS_QUERYSTRING_EXPIRE = 300  # URL signées à courte expiration (§15)
+
+# Email : activé seulement si des identifiants SMTP sont fournis (ex: Gmail +
+# mot de passe d'application) — sinon on garde le backend "console" (aucun
+# envoi réel), même logique que pour S3 : ne jamais planter faute de config.
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+
+if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+    EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+    EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+    EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+    DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=f"SGT Academy <{EMAIL_HOST_USER}>")

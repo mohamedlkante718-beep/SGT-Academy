@@ -156,6 +156,15 @@ CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
 # --- Site public (pour construire l'URL complète encodée dans le QR code des certificats) ---
 PUBLIC_SITE_URL = config("PUBLIC_SITE_URL", default="")
 
+# --- Application (espace apprenant) : lien envoyé dans les emails de confirmation ---
+MOBILE_APP_URL = config("MOBILE_APP_URL", default="")
+
+# --- Email : par défaut affiché dans la console (dev) ; SMTP activé en prod si
+# des identifiants sont fournis (voir prod.py) — sinon on n'envoie simplement rien
+# plutôt que de planter (même logique que pour le stockage S3).
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="SGT Academy <no-reply@sgtacademy.local>")
+
 # --- Multi-pays / multi-devises (§36) ---
 DEFAULT_CURRENCY = config("DEFAULT_CURRENCY", default="XOF")
 SUPPORTED_CURRENCIES = ["XOF", "XAF", "EUR", "USD"]
