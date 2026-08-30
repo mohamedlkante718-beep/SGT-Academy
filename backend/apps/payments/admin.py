@@ -13,7 +13,10 @@ class PaymentTransactionInline(admin.TabularInline):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ("reference", "user", "course", "amount", "currency", "method", "status", "created_at")
+    list_display = (
+        "reference", "user", "course", "amount", "currency", "method", "status",
+        "manual_reference_submitted", "created_at",
+    )
     list_filter = ("status", "method", "currency")
     search_fields = ("reference", "user__email", "manual_reference_submitted")
     inlines = [PaymentTransactionInline]

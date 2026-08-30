@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ApiError, purchaseCourse } from "@/lib/api";
+import { ApiError, purchaseCourse, submitManualProof } from "@/lib/api";
 import { getAccessToken } from "@/lib/auth";
 
 type State =
@@ -11,8 +11,17 @@ type State =
   | { status: "success"; reference: string; amount: string; currency: string }
   | { status: "error"; message: string };
 
+type ProofState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "sent" }
+  | { status: "error"; message: string };
+
 export default function PurchaseButton({ slug }: { slug: string }) {
   const [state, setState] = useState<State>({ status: "idle" });
+  const [proofState, setProofState] = useState<ProofState>({ status: "idle" });
+  const [transactionRef, setTransactionRef] = useState("");
+  const [proofFile, setProofFile] = useState<File | null>(null);
   // Le token vient du localStorage, indisponible côté serveur : on ne le lit
   // qu'après le montage pour éviter un décalage d'hydratation SSR/client.
   const [token, setToken] = useState<string | null>(null);
@@ -56,6 +65,23 @@ export default function PurchaseButton({ slug }: { slug: string }) {
     }
   }
 
+  async function handleSubmitProof(event: React.FormEvent, paymentReference: string) {
+    event.preventDefault();
+    setProofState({ status: "loading" });
+    try {
+      await submitManualProof(paymentReference, token!, transactionRef, proofFile ?? undefined);
+      setProofState({ status: "sent" });
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? (error.body as { reference?: string[]; detail?: string })?.reference?.[0] ??
+            (error.body as { detail?: string })?.detail ??
+            "Impossible d'envoyer votre preuve de paiement."
+          : "Impossible d'envoyer votre preuve de paiement.";
+      setProofState({ status: "error", message });
+    }
+  }
+
   if (state.status === "success") {
     const amount = Number(state.amount).toLocaleString("fr-FR");
     const whatsappMessage = encodeURIComponent(
@@ -82,16 +108,55 @@ export default function PurchaseButton({ slug }: { slug: string }) {
               Indiquez la référence <span className="font-mono">{state.reference}</span> dans le
               motif du transfert si possible.
             </li>
-            <li>
-              Envoyez-nous une capture d&apos;écran de la transaction par WhatsApp pour confirmer
-              votre paiement.
-            </li>
+            <li>Confirmez votre paiement ci-dessous avec la référence de la transaction.</li>
           </ol>
+
+          {proofState.status === "sent" ? (
+            <p className="mt-3 rounded-lg bg-brand-light p-3 font-semibold text-brand-dark">
+              Preuve envoyée. Votre accès sera débloqué après validation.
+            </p>
+          ) : (
+            <form
+              onSubmit={(e) => handleSubmitProof(e, state.reference)}
+              className="mt-3 flex flex-col gap-2"
+            >
+              <label className="flex flex-col gap-1 text-sm">
+                Référence de la transaction Mobile Money
+                <input
+                  required
+                  value={transactionRef}
+                  onChange={(e) => setTransactionRef(e.target.value)}
+                  placeholder="Ex : MP240830.1234.A56789"
+                  className="rounded-lg border border-border px-3 py-2"
+                />
+              </label>
+              <label className="flex flex-col gap-1 text-sm">
+                Capture d&apos;écran (optionnel, PNG/JPEG/PDF, 5 Mo max)
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,application/pdf"
+                  onChange={(e) => setProofFile(e.target.files?.[0] ?? null)}
+                  className="text-sm"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={proofState.status === "loading"}
+                className="mt-1 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
+              >
+                {proofState.status === "loading" ? "Envoi..." : "Confirmer mon paiement"}
+              </button>
+              {proofState.status === "error" && (
+                <p className="text-sm text-red-600">{proofState.message}</p>
+              )}
+            </form>
+          )}
+
           <a
             href={`https://wa.me/22373231647?text=${whatsappMessage}`}
-            className="mt-3 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-dark"
+            className="mt-3 block text-center text-sm font-semibold text-brand hover:underline"
           >
-            Envoyer ma preuve par WhatsApp
+            Ou envoyez votre preuve par WhatsApp
           </a>
         </div>
 

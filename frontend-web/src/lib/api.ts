@@ -180,3 +180,30 @@ export function purchaseCourse(slug: string, accessToken: string) {
     }
   );
 }
+
+// Upload de fichier (multipart) : ne passe pas par apiFetch, qui force
+// Content-Type: application/json — le navigateur doit fixer lui-même le
+// boundary multipart quand le corps est un FormData.
+export async function submitManualProof(
+  paymentReference: string,
+  accessToken: string,
+  transactionReference: string,
+  proof?: File
+) {
+  const formData = new FormData();
+  formData.set("reference", transactionReference);
+  if (proof) formData.set("proof", proof);
+
+  const response = await fetch(`${API_BASE_URL}/payments/${paymentReference}/proof/`, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: formData,
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new ApiError(response.status, body);
+  }
+  return response.json();
+}
