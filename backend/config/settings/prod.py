@@ -24,17 +24,26 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
-    },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
-AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
-AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
+# Le stockage S3 n'est activé que si un bucket et des identifiants sont
+# réellement fournis : sinon, boto3 plante à la moindre écriture de fichier
+# (ex: image de couverture d'une formation) avec une config vide. Tant que
+# S3 n'est pas branché, on retombe sur le stockage disque par défaut de
+# Django (non persistant entre redéploiements, mais fonctionnel).
 AWS_STORAGE_BUCKET_NAME = config("AWS_STORAGE_BUCKET_NAME", default="")
-AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="")  # ex: R2/B2
-AWS_S3_REGION_NAME = config("AWS_S3_REGION_NAME", default="")
-AWS_QUERYSTRING_EXPIRE = 300  # URL signées à courte expiration (§15)
+AWS_ACCESS_KEY_ID = config("AWS_ACCESS_KEY_ID", default="")
+
+if AWS_STORAGE_BUCKET_NAME and AWS_ACCESS_KEY_ID:
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
+    AWS_SECRET_ACCESS_KEY = config("AWS_SECRET_ACCESS_KEY", default="")
+    _aws_endpoint_url = config("AWS_S3_ENDPOINT_URL", default="")  # ex: R2/B2
+    if _aws_endpoint_url:
+        AWS_S3_ENDPOINT_URL = _aws_endpoint_url
+    _aws_region = config("AWS_S3_REGION_NAME", default="")
+    if _aws_region:
+        AWS_S3_REGION_NAME = _aws_region
+    AWS_QUERYSTRING_EXPIRE = 300  # URL signées à courte expiration (§15)
