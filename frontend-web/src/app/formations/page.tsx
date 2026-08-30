@@ -5,7 +5,7 @@ import { getCourses } from "@/lib/api";
 export const metadata: Metadata = {
   title: "Formations",
   description:
-    "Découvrez le catalogue des formations SGT Academy : SIG, environnement, technologie et compétences professionnelles.",
+    "Découvrez le catalogue des formations SGT Academy : des formations professionnelles variées pour développer vos compétences.",
 };
 
 const LEVELS = [
@@ -42,8 +42,8 @@ export default async function CataloguePage({
     <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
       <h1 className="text-3xl font-bold text-foreground">Nos formations</h1>
       <p className="mt-2 text-muted">
-        SIG, environnement, technologie et compétences professionnelles, pour le Mali et
-        l&apos;Afrique francophone.
+        Des formations professionnelles variées, pour développer vos compétences à
+        votre rythme.
       </p>
 
       <form className="mt-8 grid gap-4 rounded-xl border border-border bg-white p-6 sm:grid-cols-2 lg:grid-cols-5">

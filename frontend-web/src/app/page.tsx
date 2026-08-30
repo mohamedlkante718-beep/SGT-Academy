@@ -5,7 +5,7 @@ import { getCourses } from "@/lib/api";
 const ADVANTAGES = [
   {
     title: "Formateurs experts",
-    description: "Des professionnels du terrain : SIG, environnement, technologie.",
+    description: "Des professionnels expérimentés dans leur domaine.",
   },
   {
     title: "Certificat vérifiable",
@@ -33,8 +33,8 @@ export default async function HomePage() {
             Construisez votre avenir.
           </h1>
           <p className="max-w-xl text-lg text-muted">
-            Des formations professionnelles en SIG, environnement et technologie,
-            pensées pour le Mali et l&apos;Afrique francophone.
+            Des formations professionnelles variées, conçues pour développer vos
+            compétences et faire progresser votre carrière.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Link

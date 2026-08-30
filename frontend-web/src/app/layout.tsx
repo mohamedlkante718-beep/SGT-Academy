@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s — SGT Academy",
   },
   description:
-    "SGT Academy, la plateforme de formation en ligne de Safe Green Tech : SIG, environnement, technologie et compétences professionnelles pour le Mali et l'Afrique francophone.",
+    "SGT Academy, la plateforme de formation en ligne de Safe Green Tech : des formations professionnelles variées pour développer vos compétences.",
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
