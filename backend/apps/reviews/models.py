@@ -11,11 +11,13 @@ class Review(TimeStampedModel):
     REJECTED = "REJECTED"
     STATUS_CHOICES = [(PENDING, "En attente"), (APPROVED, "Approuvé"), (REJECTED, "Rejeté")]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reviews")
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews")
-    rating = models.PositiveSmallIntegerField()
-    comment = models.TextField(blank=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reviews", verbose_name="utilisateur"
+    )
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews", verbose_name="formation")
+    rating = models.PositiveSmallIntegerField(verbose_name="note")
+    comment = models.TextField(blank=True, verbose_name="commentaire")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING, verbose_name="statut")
 
     class Meta:
         constraints = [

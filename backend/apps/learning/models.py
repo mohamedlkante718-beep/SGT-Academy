@@ -21,10 +21,12 @@ class Enrollment(TimeStampedModel):
         (COUPON_FREE, "Accès gratuit via coupon"),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="enrollments")
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
-    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default=PURCHASE)
-    expires_at = models.DateTimeField(null=True, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="enrollments", verbose_name="utilisateur"
+    )
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments", verbose_name="formation")
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default=PURCHASE, verbose_name="source")
+    expires_at = models.DateTimeField(null=True, blank=True, verbose_name="expire le")
 
     class Meta:
         constraints = [
@@ -42,11 +44,13 @@ class LessonProgress(TimeStampedModel):
     COMPLETED = "COMPLETED"
     STATUS_CHOICES = [(STARTED, "Commencé"), (COMPLETED, "Terminé")]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lesson_progress")
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="progress_entries")
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STARTED)
-    watched_seconds = models.PositiveIntegerField(default=0)
-    completed_at = models.DateTimeField(null=True, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="lesson_progress", verbose_name="utilisateur"
+    )
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="progress_entries", verbose_name="leçon")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STARTED, verbose_name="statut")
+    watched_seconds = models.PositiveIntegerField(default=0, verbose_name="secondes visionnées")
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name="terminé le")
 
     class Meta:
         constraints = [
@@ -62,11 +66,17 @@ class LessonProgress(TimeStampedModel):
 class CourseProgress(TimeStampedModel):
     """Progression agrégée par formation, mise à jour à chaque LessonProgress terminée."""
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="course_progress")
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="progress_entries")
-    percent_complete = models.PositiveSmallIntegerField(default=0)
-    last_lesson = models.ForeignKey(Lesson, null=True, blank=True, on_delete=models.SET_NULL)
-    completed_at = models.DateTimeField(null=True, blank=True)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="course_progress", verbose_name="utilisateur"
+    )
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="progress_entries", verbose_name="formation"
+    )
+    percent_complete = models.PositiveSmallIntegerField(default=0, verbose_name="pourcentage terminé")
+    last_lesson = models.ForeignKey(
+        Lesson, null=True, blank=True, on_delete=models.SET_NULL, verbose_name="dernière leçon"
+    )
+    completed_at = models.DateTimeField(null=True, blank=True, verbose_name="terminé le")
 
     class Meta:
         constraints = [

@@ -8,9 +8,9 @@ from django.utils import timezone
 class TimeStampedModel(models.Model):
     """Base commune : identifiant UUID (non énumérable) + horodatage."""
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, verbose_name="identifiant")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="créé le")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="modifié le")
 
     class Meta:
         abstract = True
@@ -24,7 +24,7 @@ class SoftDeleteManager(models.Manager):
 class SoftDeleteModel(TimeStampedModel):
     """Suppression logique : l'enregistrement reste en base mais est masqué par défaut."""
 
-    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True, verbose_name="supprimé le")
 
     objects = SoftDeleteManager()
     all_objects = models.Manager()
@@ -49,12 +49,13 @@ class AuditLog(TimeStampedModel):
         blank=True,
         on_delete=models.SET_NULL,
         related_name="audit_logs",
+        verbose_name="auteur",
     )
-    action = models.CharField(max_length=100)
-    target_type = models.CharField(max_length=100, blank=True)
-    target_id = models.CharField(max_length=64, blank=True)
-    metadata = models.JSONField(default=dict, blank=True)
-    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    action = models.CharField(max_length=100, verbose_name="action")
+    target_type = models.CharField(max_length=100, blank=True, verbose_name="type de cible")
+    target_id = models.CharField(max_length=64, blank=True, verbose_name="identifiant de la cible")
+    metadata = models.JSONField(default=dict, blank=True, verbose_name="métadonnées")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="adresse IP")
 
     class Meta:
         ordering = ["-created_at"]
@@ -69,10 +70,10 @@ class AuditLog(TimeStampedModel):
 class Setting(models.Model):
     """Paramètres éditables sans toucher au code (§50) : logo, slogan, textes, etc."""
 
-    key = models.CharField(max_length=100, unique=True)
-    value = models.JSONField(default=dict, blank=True)
-    description = models.CharField(max_length=255, blank=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    key = models.CharField(max_length=100, unique=True, verbose_name="clé")
+    value = models.JSONField(default=dict, blank=True, verbose_name="valeur")
+    description = models.CharField(max_length=255, blank=True, verbose_name="description")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="modifié le")
 
     class Meta:
         verbose_name = "paramètre"

@@ -6,10 +6,12 @@ from apps.common.models import SoftDeleteModel, TimeStampedModel
 
 
 class Category(TimeStampedModel):
-    name = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=120, unique=True, blank=True)
-    description = models.TextField(blank=True)
-    icon = models.CharField(max_length=50, blank=True, help_text="Nom d'icône (ex: map, leaf, laptop)")
+    name = models.CharField(max_length=100, verbose_name="nom")
+    slug = models.SlugField(max_length=120, unique=True, blank=True, verbose_name="slug")
+    description = models.TextField(blank=True, verbose_name="description")
+    icon = models.CharField(
+        max_length=50, blank=True, help_text="Nom d'icône (ex: map, leaf, laptop)", verbose_name="icône"
+    )
 
     class Meta:
         verbose_name = "catégorie"
@@ -28,10 +30,17 @@ class Category(TimeStampedModel):
 class Instructor(TimeStampedModel):
     """Profil formateur : un utilisateur avec le rôle INSTRUCTOR peut avoir ce profil étendu."""
 
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="instructor_profile")
-    headline = models.CharField(max_length=255, blank=True, help_text="Ex: Expert SIG & télédétection")
-    bio = models.TextField(blank=True)
-    is_verified = models.BooleanField(default=False)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="instructor_profile",
+        verbose_name="utilisateur",
+    )
+    headline = models.CharField(
+        max_length=255, blank=True, help_text="Ex: Expert SIG & télédétection", verbose_name="accroche"
+    )
+    bio = models.TextField(blank=True, verbose_name="biographie")
+    is_verified = models.BooleanField(default=False, verbose_name="vérifié")
 
     class Meta:
         verbose_name = "formateur"
@@ -62,34 +71,46 @@ class Course(SoftDeleteModel):
         (ADVANCED, "Avancé"),
     ]
 
-    title = models.CharField(max_length=200)
-    slug = models.SlugField(max_length=220, unique=True, blank=True)
-    short_description = models.CharField(max_length=300, blank=True)
-    description = models.TextField(blank=True)
-    objectives = models.JSONField(default=list, blank=True, help_text="Liste des objectifs pédagogiques")
-    skills_acquired = models.JSONField(default=list, blank=True)
-    prerequisites = models.JSONField(default=list, blank=True)
+    title = models.CharField(max_length=200, verbose_name="titre")
+    slug = models.SlugField(max_length=220, unique=True, blank=True, verbose_name="slug")
+    short_description = models.CharField(max_length=300, blank=True, verbose_name="description courte")
+    description = models.TextField(blank=True, verbose_name="description")
+    objectives = models.JSONField(
+        default=list, blank=True, help_text="Liste des objectifs pédagogiques", verbose_name="objectifs"
+    )
+    skills_acquired = models.JSONField(default=list, blank=True, verbose_name="compétences acquises")
+    prerequisites = models.JSONField(default=list, blank=True, verbose_name="prérequis")
 
-    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default=BEGINNER)
-    duration_hours = models.PositiveIntegerField(default=0)
+    level = models.CharField(max_length=20, choices=LEVEL_CHOICES, default=BEGINNER, verbose_name="niveau")
+    duration_hours = models.PositiveIntegerField(default=0, verbose_name="durée (heures)")
 
-    price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
-    promo_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    currency = models.CharField(max_length=3, default="XOF", help_text="XOF, XAF, EUR, USD... (§36)")
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0, verbose_name="prix")
+    promo_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="prix promotionnel"
+    )
+    currency = models.CharField(
+        max_length=3, default="XOF", help_text="XOF, XAF, EUR, USD... (§36)", verbose_name="devise"
+    )
 
-    cover_image = models.ImageField(upload_to="courses/covers/", null=True, blank=True)
-    certificate_available = models.BooleanField(default=True)
+    cover_image = models.ImageField(
+        upload_to="courses/covers/", null=True, blank=True, verbose_name="image de couverture"
+    )
+    certificate_available = models.BooleanField(default=True, verbose_name="certificat disponible")
 
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=DRAFT)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=DRAFT, verbose_name="statut")
 
     # SEO (§38)
-    seo_title = models.CharField(max_length=70, blank=True)
-    seo_description = models.CharField(max_length=160, blank=True)
+    seo_title = models.CharField(max_length=70, blank=True, verbose_name="titre SEO")
+    seo_description = models.CharField(max_length=160, blank=True, verbose_name="description SEO")
 
-    language = models.CharField(max_length=5, default="fr")
+    language = models.CharField(max_length=5, default="fr", verbose_name="langue")
 
-    categories = models.ManyToManyField(Category, through="CourseCategory", related_name="courses")
-    instructors = models.ManyToManyField(Instructor, through="InstructorCourse", related_name="courses")
+    categories = models.ManyToManyField(
+        Category, through="CourseCategory", related_name="courses", verbose_name="catégories"
+    )
+    instructors = models.ManyToManyField(
+        Instructor, through="InstructorCourse", related_name="courses", verbose_name="formateurs"
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -107,8 +128,8 @@ class Course(SoftDeleteModel):
 
 
 class CourseCategory(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    category = models.ForeignKey(Category, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="formation")
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, verbose_name="catégorie")
 
     class Meta:
         constraints = [
@@ -119,9 +140,9 @@ class CourseCategory(models.Model):
 
 
 class InstructorCourse(TimeStampedModel):
-    instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
-    is_primary = models.BooleanField(default=True)
+    instructor = models.ForeignKey(Instructor, on_delete=models.CASCADE, verbose_name="formateur")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="formation")
+    is_primary = models.BooleanField(default=True, verbose_name="principal")
 
     class Meta:
         constraints = [
@@ -132,10 +153,10 @@ class InstructorCourse(TimeStampedModel):
 
 
 class Module(TimeStampedModel):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules")
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
-    order = models.PositiveIntegerField(default=0)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="modules", verbose_name="formation")
+    title = models.CharField(max_length=200, verbose_name="titre")
+    description = models.TextField(blank=True, verbose_name="description")
+    order = models.PositiveIntegerField(default=0, verbose_name="ordre")
 
     class Meta:
         ordering = ["course", "order"]
@@ -150,16 +171,18 @@ class Module(TimeStampedModel):
 
 
 class Lesson(TimeStampedModel):
-    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons")
-    title = models.CharField(max_length=200)
-    description = models.TextField(blank=True)
+    module = models.ForeignKey(Module, on_delete=models.CASCADE, related_name="lessons", verbose_name="module")
+    title = models.CharField(max_length=200, verbose_name="titre")
+    description = models.TextField(blank=True, verbose_name="description")
 
     # Clé de stockage objet (jamais une URL publique permanente — §15/§16).
-    video_storage_key = models.CharField(max_length=500, blank=True)
-    duration_seconds = models.PositiveIntegerField(default=0)
+    video_storage_key = models.CharField(max_length=500, blank=True, verbose_name="clé de stockage vidéo")
+    duration_seconds = models.PositiveIntegerField(default=0, verbose_name="durée (secondes)")
 
-    order = models.PositiveIntegerField(default=0)
-    is_preview = models.BooleanField(default=False, help_text="Visible gratuitement avant achat (§9)")
+    order = models.PositiveIntegerField(default=0, verbose_name="ordre")
+    is_preview = models.BooleanField(
+        default=False, help_text="Visible gratuitement avant achat (§9)", verbose_name="aperçu gratuit"
+    )
 
     class Meta:
         ordering = ["module", "order"]
@@ -179,12 +202,14 @@ class LessonResource(TimeStampedModel):
     LINK = "LINK"
     TYPE_CHOICES = [(PDF, "PDF"), (FILE, "Fichier"), (LINK, "Lien")]
 
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="resources")
-    title = models.CharField(max_length=200)
-    resource_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default=PDF)
-    storage_key = models.CharField(max_length=500, blank=True)
-    external_url = models.URLField(blank=True)
-    order = models.PositiveIntegerField(default=0)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="resources", verbose_name="leçon")
+    title = models.CharField(max_length=200, verbose_name="titre")
+    resource_type = models.CharField(
+        max_length=10, choices=TYPE_CHOICES, default=PDF, verbose_name="type de ressource"
+    )
+    storage_key = models.CharField(max_length=500, blank=True, verbose_name="clé de stockage")
+    external_url = models.URLField(blank=True, verbose_name="URL externe")
+    order = models.PositiveIntegerField(default=0, verbose_name="ordre")
 
     class Meta:
         ordering = ["lesson", "order"]

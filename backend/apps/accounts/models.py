@@ -43,18 +43,20 @@ class User(AbstractBaseUser, PermissionsMixin, SoftDeleteModel):
     (qui restent réservés à l'admin Django).
     """
 
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    email = models.EmailField(unique=True)
-    phone = models.CharField(max_length=32, unique=True, null=True, blank=True)
-    first_name = models.CharField(max_length=150)
-    last_name = models.CharField(max_length=150)
-    country = models.CharField(max_length=2, default="ML", help_text="Code pays ISO 3166-1 alpha-2")
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, verbose_name="identifiant")
+    email = models.EmailField(unique=True, verbose_name="adresse email")
+    phone = models.CharField(max_length=32, unique=True, null=True, blank=True, verbose_name="téléphone")
+    first_name = models.CharField(max_length=150, verbose_name="prénom")
+    last_name = models.CharField(max_length=150, verbose_name="nom")
+    country = models.CharField(
+        max_length=2, default="ML", help_text="Code pays ISO 3166-1 alpha-2", verbose_name="pays"
+    )
 
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True, verbose_name="actif")
+    is_staff = models.BooleanField(default=False, verbose_name="membre du personnel")
+    date_joined = models.DateTimeField(auto_now_add=True, verbose_name="date d'inscription")
 
-    roles = models.ManyToManyField("Role", through="UserRole", related_name="users")
+    roles = models.ManyToManyField("Role", through="UserRole", related_name="users", verbose_name="rôles")
 
     objects = UserManager()
 
@@ -94,9 +96,11 @@ class Role(models.Model):
         (COMPANY_ADMIN, "Administrateur entreprise"),
     ]
 
-    name = models.CharField(max_length=50, choices=NAME_CHOICES, unique=True)
-    description = models.CharField(max_length=255, blank=True)
-    permissions = models.ManyToManyField("Permission", blank=True, related_name="roles")
+    name = models.CharField(max_length=50, choices=NAME_CHOICES, unique=True, verbose_name="nom")
+    description = models.CharField(max_length=255, blank=True, verbose_name="description")
+    permissions = models.ManyToManyField(
+        "Permission", blank=True, related_name="roles", verbose_name="permissions"
+    )
 
     class Meta:
         verbose_name = "rôle"
@@ -109,8 +113,8 @@ class Role(models.Model):
 class Permission(models.Model):
     """Permission fine (distincte de auth.Permission de Django), ex: 'course.publish'."""
 
-    codename = models.CharField(max_length=100, unique=True)
-    description = models.CharField(max_length=255, blank=True)
+    codename = models.CharField(max_length=100, unique=True, verbose_name="code")
+    description = models.CharField(max_length=255, blank=True, verbose_name="description")
 
     class Meta:
         verbose_name = "permission"
@@ -121,8 +125,8 @@ class Permission(models.Model):
 
 
 class UserRole(TimeStampedModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_roles")
-    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name="user_roles")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_roles", verbose_name="utilisateur")
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name="user_roles", verbose_name="rôle")
 
     class Meta:
         constraints = [
@@ -138,12 +142,12 @@ class UserRole(TimeStampedModel):
 class Profile(TimeStampedModel):
     """Informations complémentaires, non liées à l'authentification."""
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
-    avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
-    bio = models.TextField(blank=True)
-    birth_date = models.DateField(null=True, blank=True)
-    preferred_language = models.CharField(max_length=5, default="fr")
-    timezone = models.CharField(max_length=64, default="Africa/Bamako")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile", verbose_name="utilisateur")
+    avatar = models.ImageField(upload_to="avatars/", null=True, blank=True, verbose_name="avatar")
+    bio = models.TextField(blank=True, verbose_name="biographie")
+    birth_date = models.DateField(null=True, blank=True, verbose_name="date de naissance")
+    preferred_language = models.CharField(max_length=5, default="fr", verbose_name="langue préférée")
+    timezone = models.CharField(max_length=64, default="Africa/Bamako", verbose_name="fuseau horaire")
 
     class Meta:
         verbose_name = "profil"

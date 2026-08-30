@@ -42,17 +42,25 @@ class Payment(TimeStampedModel):
         (OTHER, "Autre"),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payments")
-    course = models.ForeignKey(Course, on_delete=models.PROTECT, related_name="payments")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payments", verbose_name="utilisateur"
+    )
+    course = models.ForeignKey(Course, on_delete=models.PROTECT, related_name="payments", verbose_name="formation")
 
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default="XOF")
-    method = models.CharField(max_length=20, choices=METHOD_CHOICES, default=MANUAL)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="montant")
+    currency = models.CharField(max_length=3, default="XOF", verbose_name="devise")
+    method = models.CharField(max_length=20, choices=METHOD_CHOICES, default=MANUAL, verbose_name="méthode")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=PENDING, verbose_name="statut")
 
-    reference = models.CharField(max_length=64, unique=True, default=generate_payment_reference, editable=False)
-    manual_proof_storage_key = models.CharField(max_length=500, blank=True)
-    manual_reference_submitted = models.CharField(max_length=200, blank=True)
+    reference = models.CharField(
+        max_length=64, unique=True, default=generate_payment_reference, editable=False, verbose_name="référence"
+    )
+    manual_proof_storage_key = models.CharField(
+        max_length=500, blank=True, verbose_name="clé de stockage de la preuve"
+    )
+    manual_reference_submitted = models.CharField(
+        max_length=200, blank=True, verbose_name="référence transaction soumise"
+    )
 
     validated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -61,8 +69,9 @@ class Payment(TimeStampedModel):
         on_delete=models.SET_NULL,
         related_name="payments_validated",
         help_text="Admin ayant validé un paiement manuel",
+        verbose_name="validé par",
     )
-    validated_at = models.DateTimeField(null=True, blank=True)
+    validated_at = models.DateTimeField(null=True, blank=True, verbose_name="validé le")
 
     class Meta:
         indexes = [models.Index(fields=["status"]), models.Index(fields=["reference"])]
@@ -77,11 +86,15 @@ class Payment(TimeStampedModel):
 class PaymentTransaction(TimeStampedModel):
     """Journal des échanges avec le prestataire de paiement (webhooks, vérifications API)."""
 
-    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="transactions")
-    provider = models.CharField(max_length=50, blank=True, help_text="Ex: cinetpay, paydunya, kkiapay")
-    provider_transaction_id = models.CharField(max_length=200, blank=True)
-    status = models.CharField(max_length=20, choices=Payment.STATUS_CHOICES)
-    raw_response = models.JSONField(default=dict, blank=True)
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name="transactions", verbose_name="paiement")
+    provider = models.CharField(
+        max_length=50, blank=True, help_text="Ex: cinetpay, paydunya, kkiapay", verbose_name="prestataire"
+    )
+    provider_transaction_id = models.CharField(
+        max_length=200, blank=True, verbose_name="identifiant de transaction du prestataire"
+    )
+    status = models.CharField(max_length=20, choices=Payment.STATUS_CHOICES, verbose_name="statut")
+    raw_response = models.JSONField(default=dict, blank=True, verbose_name="réponse brute")
 
     class Meta:
         ordering = ["-created_at"]

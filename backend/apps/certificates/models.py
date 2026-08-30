@@ -14,19 +14,23 @@ class Certificate(TimeStampedModel):
     sur un certificat déjà délivré).
     """
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="certificates")
-    course = models.ForeignKey(Course, on_delete=models.PROTECT, related_name="certificates")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="certificates", verbose_name="utilisateur"
+    )
+    course = models.ForeignKey(Course, on_delete=models.PROTECT, related_name="certificates", verbose_name="formation")
 
-    code = models.CharField(max_length=64, unique=True, help_text="Ex: SGT-2026-QGIS-000125")
-    learner_name_snapshot = models.CharField(max_length=300)
-    course_title_snapshot = models.CharField(max_length=200)
-    instructor_name_snapshot = models.CharField(max_length=300, blank=True)
-    duration_hours_snapshot = models.PositiveIntegerField(default=0)
+    code = models.CharField(
+        max_length=64, unique=True, help_text="Ex: SGT-2026-QGIS-000125", verbose_name="code"
+    )
+    learner_name_snapshot = models.CharField(max_length=300, verbose_name="nom de l'apprenant (figé)")
+    course_title_snapshot = models.CharField(max_length=200, verbose_name="titre de la formation (figé)")
+    instructor_name_snapshot = models.CharField(max_length=300, blank=True, verbose_name="nom du formateur (figé)")
+    duration_hours_snapshot = models.PositiveIntegerField(default=0, verbose_name="durée en heures (figée)")
 
-    issued_at = models.DateTimeField(auto_now_add=True)
-    pdf_storage_key = models.CharField(max_length=500, blank=True)
-    qr_code_storage_key = models.CharField(max_length=500, blank=True)
-    is_revoked = models.BooleanField(default=False)
+    issued_at = models.DateTimeField(auto_now_add=True, verbose_name="délivré le")
+    pdf_storage_key = models.CharField(max_length=500, blank=True, verbose_name="clé de stockage du PDF")
+    qr_code_storage_key = models.CharField(max_length=500, blank=True, verbose_name="clé de stockage du QR code")
+    is_revoked = models.BooleanField(default=False, verbose_name="révoqué")
 
     class Meta:
         indexes = [models.Index(fields=["code"])]
@@ -42,11 +46,16 @@ class CertificateVerification(TimeStampedModel):
     """Journal des consultations de la page publique de vérification (anti-abus, §19)."""
 
     certificate = models.ForeignKey(
-        Certificate, null=True, blank=True, on_delete=models.SET_NULL, related_name="verifications"
+        Certificate,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="verifications",
+        verbose_name="certificat",
     )
-    code_checked = models.CharField(max_length=64)
-    ip_address = models.GenericIPAddressField(null=True, blank=True)
-    was_valid = models.BooleanField(default=False)
+    code_checked = models.CharField(max_length=64, verbose_name="code vérifié")
+    ip_address = models.GenericIPAddressField(null=True, blank=True, verbose_name="adresse IP")
+    was_valid = models.BooleanField(default=False, verbose_name="était valide")
 
     class Meta:
         ordering = ["-created_at"]

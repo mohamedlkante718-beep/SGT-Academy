@@ -11,18 +11,28 @@ class Coupon(TimeStampedModel):
     FIXED = "FIXED"
     DISCOUNT_TYPE_CHOICES = [(PERCENT, "Pourcentage"), (FIXED, "Montant fixe")]
 
-    code = models.CharField(max_length=50, unique=True)
-    discount_type = models.CharField(max_length=10, choices=DISCOUNT_TYPE_CHOICES, default=PERCENT)
-    discount_value = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default="XOF", blank=True)
+    code = models.CharField(max_length=50, unique=True, verbose_name="code")
+    discount_type = models.CharField(
+        max_length=10, choices=DISCOUNT_TYPE_CHOICES, default=PERCENT, verbose_name="type de réduction"
+    )
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="valeur de la réduction")
+    currency = models.CharField(max_length=3, default="XOF", blank=True, verbose_name="devise")
 
-    start_date = models.DateTimeField(null=True, blank=True)
-    end_date = models.DateTimeField(null=True, blank=True)
-    max_uses = models.PositiveIntegerField(null=True, blank=True, help_text="Vide = illimité")
-    used_count = models.PositiveIntegerField(default=0)
+    start_date = models.DateTimeField(null=True, blank=True, verbose_name="date de début")
+    end_date = models.DateTimeField(null=True, blank=True, verbose_name="date de fin")
+    max_uses = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Vide = illimité", verbose_name="utilisations maximum"
+    )
+    used_count = models.PositiveIntegerField(default=0, verbose_name="nombre d'utilisations")
 
-    courses = models.ManyToManyField(Course, blank=True, related_name="coupons", help_text="Vide = toutes les formations")
-    is_active = models.BooleanField(default=True)
+    courses = models.ManyToManyField(
+        Course,
+        blank=True,
+        related_name="coupons",
+        help_text="Vide = toutes les formations",
+        verbose_name="formations",
+    )
+    is_active = models.BooleanField(default=True, verbose_name="actif")
 
     class Meta:
         verbose_name = "coupon"
@@ -33,9 +43,18 @@ class Coupon(TimeStampedModel):
 
 
 class CouponUsage(TimeStampedModel):
-    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE, related_name="usages")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="coupon_usages")
-    payment = models.ForeignKey(Payment, null=True, blank=True, on_delete=models.SET_NULL, related_name="coupon_usages")
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE, related_name="usages", verbose_name="coupon")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="coupon_usages", verbose_name="utilisateur"
+    )
+    payment = models.ForeignKey(
+        Payment,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="coupon_usages",
+        verbose_name="paiement",
+    )
 
     class Meta:
         constraints = [
