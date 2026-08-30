@@ -60,3 +60,8 @@ if EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
     EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
     DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=f"SGT Academy <{EMAIL_HOST_USER}>")
+    # Sans timeout, une connexion SMTP bloquée (réseau, pare-feu) fait attendre
+    # indéfiniment toute la requête HTTP jusqu'au SIGKILL du worker gunicorn —
+    # ce qui plante la page en entier (ex: validation d'un paiement) au lieu
+    # d'échouer proprement et d'être rattrapé par le try/except de l'envoi.
+    EMAIL_TIMEOUT = 10
