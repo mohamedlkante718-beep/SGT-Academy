@@ -21,6 +21,18 @@ class PaymentAdmin(admin.ModelAdmin):
     search_fields = ("reference", "user__email", "manual_reference_submitted")
     inlines = [PaymentTransactionInline]
     actions = ["validate_manual_payment"]
+    readonly_fields = ("diagnostic_inscription",)
+
+    @admin.display(description="Diagnostic : inscription créée ?")
+    def diagnostic_inscription(self, obj):
+        if not obj.pk:
+            return "—"
+        from apps.learning.models import Enrollment
+
+        enrollment = Enrollment.objects.filter(user=obj.user, course=obj.course).first()
+        if enrollment:
+            return f"OUI — créée le {enrollment.created_at:%d/%m/%Y %H:%M} (source : {enrollment.source})"
+        return "NON — aucune inscription trouvée pour cet utilisateur et cette formation."
 
     @admin.action(description="Valider le(s) paiement(s) manuel(s) sélectionné(s) → PAID")
     def validate_manual_payment(self, request, queryset):
