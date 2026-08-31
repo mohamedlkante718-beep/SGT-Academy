@@ -18,17 +18,29 @@ def create_enrollment_on_paid(sender, instance: Payment, **kwargs):
     """
     if instance.status != Payment.PAID:
         return
+    ensure_enrollment_and_notify(instance)
 
+
+def ensure_enrollment_and_notify(payment: Payment):
+    """
+    Crée l'inscription (si absente) pour un paiement PAID et prévient
+    l'apprenant par email. Appelée à la fois par le signal post_save (pour
+    tout futur déclencheur automatique, ex: webhook d'un prestataire) et
+    explicitement par l'admin (validation manuelle) — pour ne jamais dépendre
+    uniquement du signal.
+    """
     from apps.learning.models import Enrollment
 
     enrollment, created = Enrollment.objects.get_or_create(
-        user=instance.user,
-        course=instance.course,
+        user=payment.user,
+        course=payment.course,
         defaults={"source": Enrollment.PURCHASE},
     )
 
     if created:
-        _send_payment_confirmation_email(instance)
+        _send_payment_confirmation_email(payment)
+
+    return enrollment, created
 
 
 def _send_payment_confirmation_email(payment: Payment):

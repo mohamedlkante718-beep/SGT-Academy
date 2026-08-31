@@ -1,7 +1,8 @@
-from django.contrib import admin, messages
+from django.contrib import admin
 from django.utils import timezone
 
 from .models import Payment, PaymentTransaction
+from .signals import ensure_enrollment_and_notify
 
 
 class PaymentTransactionInline(admin.TabularInline):
@@ -20,7 +21,7 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ("status", "method", "currency")
     search_fields = ("reference", "user__email", "manual_reference_submitted")
     inlines = [PaymentTransactionInline]
-    actions = ["validate_manual_payment", "diagnostic_force_enrollment"]
+    actions = ["validate_manual_payment"]
     readonly_fields = ("diagnostic_inscription",)
 
     @admin.display(description="Diagnostic : inscription créée ?")
@@ -34,6 +35,15 @@ class PaymentAdmin(admin.ModelAdmin):
             return f"OUI — créée le {enrollment.created_at:%d/%m/%Y %H:%M} (source : {enrollment.source})"
         return "NON — aucune inscription trouvée pour cet utilisateur et cette formation."
 
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # Ne dépend pas uniquement du signal post_save (qui ne se déclenchait
+        # pas de façon fiable en production) : on force explicitement la
+        # création de l'inscription ici, sur le chemin réellement emprunté
+        # par l'admin quand on enregistre un paiement passé à PAID.
+        if obj.status == Payment.PAID:
+            ensure_enrollment_and_notify(obj)
+
     @admin.action(description="Valider le(s) paiement(s) manuel(s) sélectionné(s) → PAID")
     def validate_manual_payment(self, request, queryset):
         updated = 0
@@ -42,35 +52,6 @@ class PaymentAdmin(admin.ModelAdmin):
             payment.validated_by = request.user
             payment.validated_at = timezone.now()
             payment.save(update_fields=["status", "validated_by", "validated_at"])
+            ensure_enrollment_and_notify(payment)
             updated += 1
         self.message_user(request, f"{updated} paiement(s) validé(s).")
-
-    @admin.action(description="DIAGNOSTIC — forcer la création de l'inscription (sans email)")
-    def diagnostic_force_enrollment(self, request, queryset):
-        from apps.learning.models import Enrollment
-
-        for payment in queryset:
-            try:
-                enrollment, created = Enrollment.objects.get_or_create(
-                    user=payment.user,
-                    course=payment.course,
-                    defaults={"source": Enrollment.PURCHASE},
-                )
-                if created:
-                    self.message_user(
-                        request,
-                        f"OK — inscription créée pour {payment.user.email} / {payment.course.title} "
-                        f"(id={enrollment.pk}).",
-                    )
-                else:
-                    self.message_user(
-                        request,
-                        f"Déjà existante pour {payment.user.email} / {payment.course.title} "
-                        f"(id={enrollment.pk}, créée le {enrollment.created_at}).",
-                    )
-            except Exception as exc:  # noqa: BLE001 — diagnostic volontairement large
-                self.message_user(
-                    request,
-                    f"ÉCHEC pour {payment.reference} : {type(exc).__name__}: {exc}",
-                    level=messages.ERROR,
-                )
