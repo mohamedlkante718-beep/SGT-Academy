@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils import timezone
 
 from .models import Payment, PaymentTransaction
@@ -20,7 +20,7 @@ class PaymentAdmin(admin.ModelAdmin):
     list_filter = ("status", "method", "currency")
     search_fields = ("reference", "user__email", "manual_reference_submitted")
     inlines = [PaymentTransactionInline]
-    actions = ["validate_manual_payment"]
+    actions = ["validate_manual_payment", "diagnostic_force_enrollment"]
     readonly_fields = ("diagnostic_inscription",)
 
     @admin.display(description="Diagnostic : inscription créée ?")
@@ -44,3 +44,33 @@ class PaymentAdmin(admin.ModelAdmin):
             payment.save(update_fields=["status", "validated_by", "validated_at"])
             updated += 1
         self.message_user(request, f"{updated} paiement(s) validé(s).")
+
+    @admin.action(description="DIAGNOSTIC — forcer la création de l'inscription (sans email)")
+    def diagnostic_force_enrollment(self, request, queryset):
+        from apps.learning.models import Enrollment
+
+        for payment in queryset:
+            try:
+                enrollment, created = Enrollment.objects.get_or_create(
+                    user=payment.user,
+                    course=payment.course,
+                    defaults={"source": Enrollment.PURCHASE},
+                )
+                if created:
+                    self.message_user(
+                        request,
+                        f"OK — inscription créée pour {payment.user.email} / {payment.course.title} "
+                        f"(id={enrollment.pk}).",
+                    )
+                else:
+                    self.message_user(
+                        request,
+                        f"Déjà existante pour {payment.user.email} / {payment.course.title} "
+                        f"(id={enrollment.pk}, créée le {enrollment.created_at}).",
+                    )
+            except Exception as exc:  # noqa: BLE001 — diagnostic volontairement large
+                self.message_user(
+                    request,
+                    f"ÉCHEC pour {payment.reference} : {type(exc).__name__}: {exc}",
+                    level=messages.ERROR,
+                )
