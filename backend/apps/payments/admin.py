@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils import timezone
 
 from .models import Payment, PaymentTransaction
@@ -41,8 +41,29 @@ class PaymentAdmin(admin.ModelAdmin):
         # pas de façon fiable en production) : on force explicitement la
         # création de l'inscription ici, sur le chemin réellement emprunté
         # par l'admin quand on enregistre un paiement passé à PAID.
+        # Le message ci-dessous est volontairement visible dans l'admin (et pas
+        # seulement dans les logs Railway, peu fiables) pour prouver que ce
+        # code s'exécute bien et voir immédiatement le résultat.
         if obj.status == Payment.PAID:
-            ensure_enrollment_and_notify(obj)
+            try:
+                enrollment, created = ensure_enrollment_and_notify(obj)
+            except Exception as exc:  # noqa: BLE001 - on veut voir l'erreur exacte à l'écran
+                self.message_user(
+                    request,
+                    f"ÉCHEC création inscription pour {obj.user.email} : {exc!r}",
+                    level=messages.ERROR,
+                )
+            else:
+                if created:
+                    self.message_user(
+                        request,
+                        f"Inscription CRÉÉE pour {obj.user.email} / {obj.course.title} (id={enrollment.id}).",
+                    )
+                else:
+                    self.message_user(
+                        request,
+                        f"Inscription déjà existante pour {obj.user.email} / {obj.course.title} (id={enrollment.id}).",
+                    )
 
     @admin.action(description="Valider le(s) paiement(s) manuel(s) sélectionné(s) → PAID")
     def validate_manual_payment(self, request, queryset):
