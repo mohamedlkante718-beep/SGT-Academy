@@ -47,8 +47,11 @@ pytest -v
 Les tests couvrent le parcours complet (création de poste avec
 génération de clés Ed25519, création des comptes agents, envoi d'un
 manifeste signé, idempotence de la synchronisation, contrôle dépôt,
-et lecture du tableau de bord), ainsi que le rejet d'une signature
-invalide. Validés dans cet environnement : `3 passed`.
+et lecture du tableau de bord), le rejet d'une signature invalide, et
+la vérification d'une signature dont la date est au format produit par
+l'appli mobile (Dart) plutôt que par Python — un vrai piège
+d'interopérabilité trouvé et corrigé pendant le développement (voir
+`docs/DB-SCHEMA.md`). Validés dans cet environnement : `4 passed`.
 
 ## Hébergement à très faible coût
 

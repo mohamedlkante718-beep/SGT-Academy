@@ -15,7 +15,7 @@ l'enregistrement manuel, camion par camion, sur papier.
 transit-carburant/
 ├── docs/       # cahier des charges, schéma de base de données
 ├── backend/    # API centrale FastAPI (Python) — testée, fonctionnelle
-└── mobile/     # application Flutter (agents + supervision) — non compilée ici, voir mobile/README.md
+└── mobile/     # application Flutter (agents + supervision) — analysée et testée (flutter analyze/test)
 ```
 
 ## Démarrer
@@ -29,9 +29,14 @@ transit-carburant/
 - Backend : scaffolding complet (auth, gestion des postes avec
   génération de clés Ed25519, synchronisation idempotente des
   manifestes et des contrôles, tableau de bord), couvert par des
-  tests qui passent (`3 passed`).
+  tests qui passent (`4 passed`).
 - Mobile : écrans, base SQLite locale et logique de signature/
-  vérification écrits en suivant les maquettes, mais **non compilés
-  ni testés** faute de SDK Flutter dans cet environnement de
-  développement — à valider avec `flutter analyze` / `flutter test`
-  avant la première exécution réelle.
+  vérification écrits en suivant les maquettes, validés avec un vrai
+  SDK Flutter (3.47.5 stable) : `flutter analyze` propre, `flutter
+  test` passe (`6 passed`). Reste à faire : scan QR par caméra (la
+  saisie manuelle fonctionne déjà), prise de photo, écran d'historique
+  — voir `mobile/README.md`.
+- Un bug d'interopérabilité de format de date entre Dart et Python
+  (qui aurait fait échouer toute vérification de signature en usage
+  réel) a été trouvé et corrigé pendant cette validation croisée — voir
+  `docs/DB-SCHEMA.md` § "Piège d'interopérabilité".

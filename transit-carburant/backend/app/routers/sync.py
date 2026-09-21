@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -57,6 +59,13 @@ def _get_or_create_chauffeur(db: Session, nom: str, piece_identite: str, telepho
     return chauffeur
 
 
+def _parse_iso_datetime(value: str) -> datetime:
+    """Convertit la chaîne ISO-8601 brute du client en datetime, pour
+    le STOCKAGE uniquement (jamais pour reconstruire le texte signé :
+    voir la note sur `ManifesteIn.date_creation`)."""
+    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+
 @router.post(
     "/manifestes",
     response_model=ManifesteBatchOut,
@@ -100,7 +109,7 @@ def sync_manifestes(payload: ManifesteBatchIn, db: Session = Depends(get_db)) ->
                 numero_scelle=item.numero_scelle,
                 poste_frontiere_id=item.poste_frontiere_id,
                 depot_destination_id=item.depot_destination_id,
-                date_creation_iso=item.date_creation.isoformat(),
+                date_creation_iso=item.date_creation,
             )
             signature_valide = verify_manifeste_signature(
                 payload_bytes, item.signature_numerique, poste_frontiere.cle_publique
@@ -121,7 +130,7 @@ def sync_manifestes(payload: ManifesteBatchIn, db: Session = Depends(get_db)) ->
             agent_frontiere_id=item.agent_frontiere_id,
             signature_numerique=item.signature_numerique,
             signature_valide=signature_valide,
-            date_creation=item.date_creation,
+            date_creation=_parse_iso_datetime(item.date_creation),
             statut=ManifesteStatutEnum.en_route if signature_valide else ManifesteStatutEnum.anomalie,
         )
         db.add(manifeste)

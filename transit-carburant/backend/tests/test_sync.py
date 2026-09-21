@@ -222,3 +222,90 @@ def test_signature_invalide_declenche_une_alerte(client):
 def test_login_refuse_mauvais_mot_de_passe(client):
     r = client.post("/auth/login", json={"matricule": "admin", "password": "mauvais"})
     assert r.status_code == 401
+
+
+def test_signature_valide_avec_un_format_de_date_style_dart(client):
+    """Régression : l'appli mobile (Dart) envoie `date_creation` au
+    format `2026-01-02T03:04:05.000Z` (via `toIso8601String()`), très
+    différent de ce que produirait `datetime.isoformat()` côté Python
+    (`2026-01-02T03:04:05+00:00`). Le serveur doit vérifier la
+    signature sur le texte BRUT reçu, jamais sur une version
+    reformatée, sous peine de rejeter à tort tous les manifestes
+    envoyés par de vrais téléphones."""
+    admin_token = _login(client, "admin", "admin1234")
+
+    r = client.post(
+        "/postes",
+        json={"nom": "Héremakono", "type": "frontiere", "ville": "Héremakono"},
+        headers=_auth(admin_token),
+    )
+    poste_frontiere = r.json()
+    cle_privee_b64 = poste_frontiere["cle_privee_a_provisionner"]
+    poste_frontiere_id = poste_frontiere["poste"]["id"]
+
+    r = client.post(
+        "/postes",
+        json={"nom": "Sikasso", "type": "depot", "ville": "Sikasso"},
+        headers=_auth(admin_token),
+    )
+    depot_id = r.json()["poste"]["id"]
+
+    r = client.post(
+        "/users",
+        json={
+            "matricule": "DG-4242",
+            "nom_complet": "Agent Dart",
+            "role": "agent_frontiere",
+            "poste_id": poste_frontiere_id,
+            "password": "pass1234",
+        },
+        headers=_auth(admin_token),
+    )
+    agent_id = r.json()["id"]
+    agent_token = _login(client, "DG-4242", "pass1234")
+
+    manifeste_id = "44444444-4444-4444-4444-444444444444"
+    date_creation_style_dart = "2026-09-21T09:42:00.000Z"
+
+    payload_bytes = build_manifeste_payload(
+        manifeste_id=manifeste_id,
+        plaque_immatriculation="ML-7712-EF",
+        transporteur_nom="Diallo & Fils",
+        chauffeur_nom="Oumar Diallo",
+        type_cargaison="gaz_butane",
+        quantite_declaree=12000.0,
+        unite="kg",
+        numero_scelle="SC-42",
+        poste_frontiere_id=poste_frontiere_id,
+        depot_destination_id=depot_id,
+        date_creation_iso=date_creation_style_dart,
+    )
+    private_key = Ed25519PrivateKey.from_private_bytes(base64.b64decode(cle_privee_b64))
+    signature_b64 = base64.b64encode(private_key.sign(payload_bytes)).decode("ascii")
+
+    manifeste_payload = {
+        "id": manifeste_id,
+        "plaque_immatriculation": "ML-7712-EF",
+        "transporteur_nom": "Diallo & Fils",
+        "chauffeur_nom": "Oumar Diallo",
+        "chauffeur_piece_identite": "CNI-4242",
+        "poste_frontiere_id": poste_frontiere_id,
+        "depot_destination_id": depot_id,
+        "type_cargaison": "gaz_butane",
+        "quantite_declaree": 12000.0,
+        "unite": "kg",
+        "numero_scelle": "SC-42",
+        "agent_frontiere_id": agent_id,
+        "signature_numerique": signature_b64,
+        "date_creation": date_creation_style_dart,
+    }
+
+    r = client.post(
+        "/sync/manifestes",
+        json={"manifestes": [manifeste_payload]},
+        headers=_auth(agent_token),
+    )
+    assert r.status_code == 200, r.text
+    resultat = r.json()["resultats"][0]
+    assert resultat["signature_valide"] is True
+    assert resultat["statut"] == "en_route"

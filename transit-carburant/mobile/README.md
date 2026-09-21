@@ -5,21 +5,26 @@ superviseur, sur la base des maquettes de conception. Voir
 `docs/CAHIER-DES-CHARGES.md` et `docs/DB-SCHEMA.md` à la racine du
 projet pour le contexte complet.
 
-> **Important** : cet environnement de développement ne dispose pas du
-> SDK Flutter/Dart. Ce code a été écrit avec soin (schéma SQLite,
-> logique de signature/vérification Ed25519 identique au backend,
-> écrans conformes aux maquettes) mais **n'a pas pu être compilé ni
-> testé ici**. Avant de t'y fier, lance au minimum :
->
-> ```bash
-> flutter pub get
-> flutter analyze
-> flutter test
-> ```
->
-> et corrige les éventuelles erreurs de version d'API que `flutter
-> analyze` remonterait (les packages tiers changent parfois leur API
-> d'une version à l'autre).
+> **Validé** avec Flutter 3.47.5 (stable) : `flutter analyze` ne
+> remonte aucun problème et `flutter test` passe (6/6, dans
+> `test/crypto_and_manifeste_test.dart`), y compris un test de
+> régression pour un vrai piège d'interopérabilité trouvé pendant
+> cette validation (voir encadré ci-dessous). Ça ne remplace pas un
+> test sur un appareil réel : lance quand même `flutter run` avant la
+> mise en production.
+
+> **Bug trouvé et corrigé pendant la validation** : le format de date
+> produit par `DateTime.toUtc().toIso8601String()` en Dart
+> (`2026-01-02T03:04:05.000Z`) diffère de celui que `datetime.isoformat()`
+> produit en Python pour la même date (`2026-01-02T03:04:05+00:00`).
+> Le backend reconstruisait ce texte à partir d'un objet `datetime`
+> reformaté au lieu de garder la chaîne brute du client, ce qui aurait
+> fait échouer la vérification de signature pour **tous** les
+> manifestes envoyés par un vrai téléphone. Corrigé côté backend
+> (`ManifesteIn.date_creation` est maintenant une chaîne opaque,
+> jamais reformatée avant la vérification — voir
+> `docs/DB-SCHEMA.md` § "Piège d'interopérabilité") et couvert par un
+> test de non-régression des deux côtés.
 
 ## Ce qui est fonctionnel dans ce squelette
 

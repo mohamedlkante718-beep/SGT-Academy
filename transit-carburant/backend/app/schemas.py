@@ -109,7 +109,14 @@ class ManifesteIn(BaseModel):
     photo_path: str | None = None
     agent_frontiere_id: str
     signature_numerique: str
-    date_creation: datetime
+    # Chaîne brute, telle qu'émise par l'appareil qui a signé le
+    # manifeste (ex. `DateTime.toUtc().toIso8601String()` côté Dart) :
+    # gardée verbatim, jamais reformatée, car c'est cet exact texte qui
+    # entre dans le contenu signé (voir build_manifeste_payload). La
+    # reformater via un objet datetime romprait la vérification de
+    # signature (Python et Dart ne sérialisent pas un datetime UTC de
+    # façon identique : `+00:00` vs `Z`, précision des millisecondes).
+    date_creation: str
 
 
 class ManifesteOut(BaseModel):

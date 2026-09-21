@@ -230,7 +230,7 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
               children: [
                 Expanded(
                   child: DropdownButtonFormField<Cargaison>(
-                    value: _cargaison,
+                    initialValue: _cargaison,
                     decoration: const InputDecoration(labelText: 'Cargaison'),
                     items: Cargaison.values
                         .map((c) => DropdownMenuItem(value: c, child: Text(c.label)))
@@ -258,7 +258,7 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<Poste>(
-              value: _depotSelectionne,
+              initialValue: _depotSelectionne,
               decoration: const InputDecoration(labelText: 'Dépôt de destination'),
               items: _depots.map((p) => DropdownMenuItem(value: p, child: Text('${p.nom} — ${p.ville}'))).toList(),
               onChanged: (value) => setState(() => _depotSelectionne = value),

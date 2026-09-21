@@ -122,3 +122,20 @@ fois le même manifeste ne crée jamais de doublon. Un `manifeste` ne peut être
 modifié après son premier `controles_depot` associé (write-once) ; toute
 correction ultérieure passe par une nouvelle entrée dans `audit_log`, jamais
 par une mise à jour silencieuse.
+
+## Piège d'interopérabilité : la date dans le contenu signé
+
+Le champ `date_creation` du manifeste fait partie du texte signé par le
+poste frontière (voir `build_manifeste_payload`). Ce texte doit être
+comparé **octet pour octet** entre la signature (faite sur le téléphone,
+en Dart) et la vérification (faite sur le serveur, en Python) : `Dart
+DateTime.toUtc().toIso8601String()` produit par exemple
+`2026-01-02T03:04:05.000Z`, alors que `Python
+datetime.isoformat()` produirait `2026-01-02T03:04:05+00:00` pour la
+même date. Si le serveur reconstruit ce texte à partir d'un objet
+`datetime` reformaté plutôt que de garder la chaîne brute reçue du
+client, la vérification échoue systématiquement pour de vrais
+appareils. Le backend traite donc `date_creation` comme une chaîne
+opaque pour la vérification de signature, et ne la convertit en
+`datetime` que pour le stockage en base (voir
+`backend/app/routers/sync.py::_parse_iso_datetime`).
