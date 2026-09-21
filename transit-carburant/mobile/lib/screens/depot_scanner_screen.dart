@@ -7,7 +7,10 @@ import '../app_theme.dart';
 import '../db/local_repository.dart';
 import '../models/manifeste.dart';
 import '../services/crypto_service.dart';
+import '../services/session_service.dart';
 import 'depot_verification_screen.dart';
+import 'historique_depot_screen.dart';
+import 'login_screen.dart';
 
 /// Écran de scan au dépôt.
 ///
@@ -25,6 +28,7 @@ class DepotScannerScreen extends StatefulWidget {
 class _DepotScannerScreenState extends State<DepotScannerScreen> {
   final _repository = LocalRepository();
   final _cryptoService = CryptoService();
+  final _sessionService = SessionService();
   final _codeCtrl = TextEditingController();
   final _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
@@ -40,6 +44,15 @@ class _DepotScannerScreenState extends State<DepotScannerScreen> {
     _codeCtrl.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _seDeconnecter() async {
+    await _sessionService.deconnecter();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   Future<void> _onDetect(BarcodeCapture capture) async {
@@ -105,6 +118,25 @@ class _DepotScannerScreenState extends State<DepotScannerScreen> {
               if (mounted) setState(() => _torcheActive = !_torcheActive);
             },
           ),
+          IconButton(
+            tooltip: 'Se déconnecter',
+            icon: const Icon(Icons.logout),
+            onPressed: _seDeconnecter,
+          ),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: 0,
+        onDestinationSelected: (index) {
+          if (index == 1) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const HistoriqueDepotScreen()),
+            );
+          }
+        },
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.qr_code_scanner), label: 'Scanner'),
+          NavigationDestination(icon: Icon(Icons.history), label: 'Historique'),
         ],
       ),
       body: Padding(

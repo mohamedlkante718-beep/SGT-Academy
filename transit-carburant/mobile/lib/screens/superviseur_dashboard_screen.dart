@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_theme.dart';
 import '../services/api_client.dart';
 import '../services/session_service.dart';
+import 'login_screen.dart';
 
 /// Tableau de bord du superviseur. Contrairement aux écrans agents,
 /// il a besoin du réseau (il agrège des données de plusieurs
@@ -41,12 +42,24 @@ class _SuperviseurDashboardScreenState extends State<SuperviseurDashboardScreen>
     await _futureDonnees;
   }
 
+  Future<void> _seDeconnecter() async {
+    await _sessionService.deconnecter();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Supervision'),
-        actions: [IconButton(onPressed: _rafraichir, icon: const Icon(Icons.refresh))],
+        actions: [
+          IconButton(onPressed: _rafraichir, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _seDeconnecter, icon: const Icon(Icons.logout)),
+        ],
       ),
       body: FutureBuilder<_DonneesTableauDeBord>(
         future: _futureDonnees,

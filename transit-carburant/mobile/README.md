@@ -36,10 +36,18 @@ projet pour le contexte complet.
 - Signature et vérification Ed25519 hors ligne (`package:cryptography`),
   avec un algorithme de contenu canonique **identique** à celui du
   backend (`build_manifeste_payload` / `Manifeste.canonicalPayload()`).
-- Les 6 écrans des maquettes : connexion, nouveau contrôle (frontière),
-  manifeste QR (frontière, généré avec `qr_flutter`), scanner (dépôt,
-  caméra réelle via `mobile_scanner` + saisie manuelle de secours),
-  vérification (dépôt), tableau de bord (superviseur).
+- Les 6 écrans des maquettes : connexion, nouveau contrôle (frontière,
+  avec prise de photo de la citerne/du scellé via `image_picker` —
+  caméra uniquement, jamais la galerie, pour que la photo soit bien
+  celle prise sur place), manifeste QR (frontière, généré avec
+  `qr_flutter`), scanner (dépôt, caméra réelle via `mobile_scanner` +
+  saisie manuelle de secours), vérification (dépôt), tableau de bord
+  (superviseur).
+- Écrans d'historique local (frontière : manifestes créés sur cet
+  appareil ; dépôt : contrôles effectués), accessibles depuis une
+  barre de navigation en bas de l'écran principal de chaque rôle.
+- Déconnexion disponible sur les trois écrans (frontière, dépôt,
+  superviseur) — absente jusqu'ici.
 - Synchronisation différée, idempotente, silencieuse en cas d'échec
   réseau (`SyncService`).
 - Stockage sécurisé de la clé privée de signature d'un poste
@@ -48,9 +56,6 @@ projet pour le contexte complet.
 
 ## Ce qui reste à faire
 
-- **Prise de photo de la citerne/du scellé** (`image_picker` ou
-  équivalent) : le champ `photo_path` existe déjà dans le modèle.
-- Écran d'historique des contrôles (frontière et dépôt).
 - Synchronisation en arrière-plan périodique (aujourd'hui déclenchée
   après chaque création/contrôle, mais pas de tâche planifiée).
 - Icône d'application et écran de démarrage personnalisés (les
@@ -58,6 +63,9 @@ projet pour le contexte complet.
 - Test sur un appareil Android réel (permission caméra, autonomie,
   écran d'entrée de gamme) — voir la limite de cet environnement
   ci-dessus.
+- Upload de la photo capturée lors de la synchronisation (aujourd'hui
+  seul le chemin local `photo_path` est stocké/synchronisé comme
+  texte ; le fichier image lui-même ne quitte pas le téléphone).
 
 ## Installation
 

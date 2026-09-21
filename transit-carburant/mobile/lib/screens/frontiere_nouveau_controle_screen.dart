@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 
 import '../app_theme.dart';
@@ -13,6 +15,8 @@ import '../services/session_service.dart';
 import '../services/sync_service.dart';
 import '../widgets/status_pill.dart';
 import 'frontiere_manifeste_screen.dart';
+import 'historique_frontiere_screen.dart';
+import 'login_screen.dart';
 
 class FrontiereNouveauControleScreen extends StatefulWidget {
   const FrontiereNouveauControleScreen({super.key});
@@ -26,6 +30,7 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
   final _sessionService = SessionService();
   final _cryptoService = CryptoService();
   final _syncService = SyncService();
+  final _imagePicker = ImagePicker();
 
   final _plaqueCtrl = TextEditingController();
   final _transporteurCtrl = TextEditingController();
@@ -43,6 +48,7 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
   int _enAttente = 0;
   bool _enCours = false;
   String? _erreur;
+  String? _photoPath;
 
   @override
   void initState() {
@@ -62,6 +68,23 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
       _depotSelectionne = depots.isNotEmpty ? depots.first : null;
       _enAttente = enAttente;
     });
+  }
+
+  Future<void> _prendrePhoto() async {
+    try {
+      final photo = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1600,
+        imageQuality: 85,
+      );
+      if (photo != null && mounted) {
+        setState(() => _photoPath = photo.path);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _erreur = "Impossible d'accéder à la caméra pour la photo. Vérifiez la permission.");
+      }
+    }
   }
 
   @override
@@ -121,6 +144,7 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
         quantiteDeclaree: quantite,
         unite: _unite,
         numeroScelle: _scelleCtrl.text.trim(),
+        photoPath: _photoPath,
         agentFrontiereId: agent.id,
         signatureNumerique: '',
         dateCreation: dateCreation,
@@ -143,6 +167,7 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
         quantiteDeclaree: brouillon.quantiteDeclaree,
         unite: brouillon.unite,
         numeroScelle: brouillon.numeroScelle,
+        photoPath: brouillon.photoPath,
         agentFrontiereId: brouillon.agentFrontiereId,
         signatureNumerique: signature,
         dateCreation: brouillon.dateCreation,
@@ -174,6 +199,16 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
     _chauffeurPieceCtrl.clear();
     _quantiteCtrl.clear();
     _scelleCtrl.clear();
+    setState(() => _photoPath = null);
+  }
+
+  Future<void> _seDeconnecter() async {
+    await _sessionService.deconnecter();
+    if (!mounted) return;
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -183,9 +218,28 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
         title: const Text('Nouveau contrôle'),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: 8),
             child: Center(child: StatusPill(label: '$_enAttente en attente', color: AppColors.orange)),
           ),
+          IconButton(
+            tooltip: 'Se déconnecter',
+            icon: const Icon(Icons.logout),
+            onPressed: _seDeconnecter,
+          ),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: 0,
+        onDestinationSelected: (index) {
+          if (index == 1) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const HistoriqueFrontiereScreen()),
+            );
+          }
+        },
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.add_circle_outline), selectedIcon: Icon(Icons.add_circle), label: 'Nouveau'),
+          NavigationDestination(icon: Icon(Icons.history), label: 'Historique'),
         ],
       ),
       body: SingleChildScrollView(
@@ -255,6 +309,47 @@ class _FrontiereNouveauControleScreenState extends State<FrontiereNouveauControl
             TextField(
               controller: _scelleCtrl,
               decoration: const InputDecoration(labelText: 'N° de scellé'),
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: _prendrePhoto,
+              borderRadius: BorderRadius.circular(12),
+              child: _photoPath == null
+                  ? Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.border, width: 1.5, style: BorderStyle.solid),
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white,
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.camera_alt_outlined, color: AppColors.muted),
+                          SizedBox(width: 10),
+                          Text(
+                            'Ajouter une photo de la citerne / du scellé',
+                            style: TextStyle(fontSize: 13, color: AppColors.muted),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Stack(
+                        alignment: Alignment.topRight,
+                        children: [
+                          Image.file(File(_photoPath!), height: 160, width: double.infinity, fit: BoxFit.cover),
+                          Container(
+                            margin: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
+                            child: IconButton(
+                              icon: const Icon(Icons.close, color: Colors.white, size: 18),
+                              onPressed: () => setState(() => _photoPath = null),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<Poste>(

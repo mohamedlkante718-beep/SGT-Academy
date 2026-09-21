@@ -67,6 +67,12 @@ class LocalRepository {
     );
   }
 
+  Future<List<ControleDepot>> controlesRecents({int limit = 50}) async {
+    final db = await _db;
+    final rows = await db.query('controles_depot', orderBy: 'date_controle DESC', limit: limit);
+    return rows.map(ControleDepot.fromDbMap).toList();
+  }
+
   Future<List<ControleDepot>> controlesNonSynchronises() async {
     final db = await _db;
     final rows = await db.query(

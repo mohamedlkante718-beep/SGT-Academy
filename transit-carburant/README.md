@@ -30,14 +30,17 @@ transit-carburant/
   génération de clés Ed25519, synchronisation idempotente des
   manifestes et des contrôles, tableau de bord), couvert par des
   tests qui passent (`4 passed`).
-- Mobile : écrans, base SQLite locale, logique de signature/
-  vérification, et scan QR par caméra (`mobile_scanner`, avec saisie
-  manuelle de secours), le tout suivant les maquettes et validé avec
-  un vrai SDK Flutter (3.47.5 stable) : `flutter analyze` propre,
-  `flutter test` passe (`6 passed`). Les dossiers `android/`/`ios/`
-  sont générés avec les permissions caméra nécessaires. Non testé
-  faute de SDK Android/Xcode ici : la compilation/exécution réelle sur
-  appareil. Reste à faire : prise de photo, écran d'historique — voir
+- Mobile : écrans complets (dont photo de la citerne/du scellé à la
+  frontière, scan QR par caméra au dépôt avec `mobile_scanner`, saisie
+  manuelle de secours, historiques locaux, déconnexion), base SQLite
+  locale, logique de signature/vérification, le tout suivant les
+  maquettes et validé avec un vrai SDK Flutter (3.47.5 stable) :
+  `flutter analyze` propre, `flutter test` passe (`6 passed`). Les
+  dossiers `android/`/`ios/` sont générés avec les permissions caméra
+  nécessaires. Non testé faute de SDK Android/Xcode ici : la
+  compilation/exécution réelle sur appareil. Reste à faire :
+  synchronisation en arrière-plan, upload du fichier photo (seul son
+  chemin local est synchronisé pour l'instant), icône d'app — voir
   `mobile/README.md`.
 - Un bug d'interopérabilité de format de date entre Dart et Python
   (qui aurait fait échouer toute vérification de signature en usage
