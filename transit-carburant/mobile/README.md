@@ -9,9 +9,12 @@ projet pour le contexte complet.
 > remonte aucun problème et `flutter test` passe (6/6, dans
 > `test/crypto_and_manifeste_test.dart`), y compris un test de
 > régression pour un vrai piège d'interopérabilité trouvé pendant
-> cette validation (voir encadré ci-dessous). Ça ne remplace pas un
-> test sur un appareil réel : lance quand même `flutter run` avant la
-> mise en production.
+> cette validation (voir encadré ci-dessous). Les dossiers `android/`
+> et `ios/` ont été générés (`flutter create`) avec les permissions
+> caméra nécessaires au scan QR. **Limite de cet environnement** :
+> pas de SDK Android ni d'Xcode disponibles ici, donc `flutter build
+> apk` / `flutter run` sur un appareil réel n'ont pas pu être testés
+> — à faire avant la mise en production.
 
 > **Bug trouvé et corrigé pendant la validation** : le format de date
 > produit par `DateTime.toUtc().toIso8601String()` en Dart
@@ -34,7 +37,8 @@ projet pour le contexte complet.
   avec un algorithme de contenu canonique **identique** à celui du
   backend (`build_manifeste_payload` / `Manifeste.canonicalPayload()`).
 - Les 6 écrans des maquettes : connexion, nouveau contrôle (frontière),
-  manifeste QR (frontière, généré avec `qr_flutter`), scanner (dépôt),
+  manifeste QR (frontière, généré avec `qr_flutter`), scanner (dépôt,
+  caméra réelle via `mobile_scanner` + saisie manuelle de secours),
   vérification (dépôt), tableau de bord (superviseur).
 - Synchronisation différée, idempotente, silencieuse en cas d'échec
   réseau (`SyncService`).
@@ -44,16 +48,16 @@ projet pour le contexte complet.
 
 ## Ce qui reste à faire
 
-- **Scan QR par caméra** : l'écran dépôt a une saisie manuelle
-  pleinement fonctionnelle, mais la lecture caméra n'est pas câblée
-  (à intégrer avec un package comme `mobile_scanner` — son API change
-  assez souvent d'une version à l'autre pour qu'il vaille mieux la
-  câbler avec la version réellement choisie plutôt que de deviner ici).
 - **Prise de photo de la citerne/du scellé** (`image_picker` ou
   équivalent) : le champ `photo_path` existe déjà dans le modèle.
 - Écran d'historique des contrôles (frontière et dépôt).
 - Synchronisation en arrière-plan périodique (aujourd'hui déclenchée
   après chaque création/contrôle, mais pas de tâche planifiée).
+- Icône d'application et écran de démarrage personnalisés (les
+  assets par défaut de `flutter create` sont encore en place).
+- Test sur un appareil Android réel (permission caméra, autonomie,
+  écran d'entrée de gamme) — voir la limite de cet environnement
+  ci-dessus.
 
 ## Installation
 
