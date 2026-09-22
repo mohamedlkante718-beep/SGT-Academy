@@ -26,23 +26,24 @@ transit-carburant/
 
 ## État actuel
 
-- Backend : scaffolding complet (auth, gestion des postes avec
-  génération de clés Ed25519, synchronisation idempotente des
-  manifestes et des contrôles, tableau de bord), couvert par des
-  tests qui passent (`4 passed`).
+- Backend : auth, gestion des postes avec génération de clés Ed25519,
+  synchronisation idempotente des manifestes et des contrôles, upload
+  de la photo d'un manifeste, tableau de bord — couvert par des tests
+  qui passent, chacun sur sa propre base isolée (`8 passed`).
 - Mobile : écrans complets (dont photo de la citerne/du scellé à la
-  frontière, scan QR par caméra au dépôt avec `mobile_scanner`, saisie
-  manuelle de secours, historiques locaux, déconnexion), base SQLite
-  locale, logique de signature/vérification, le tout suivant les
-  maquettes et validé avec un vrai SDK Flutter (3.47.5 stable) :
-  `flutter analyze` propre, `flutter test` passe (`6 passed`). Les
-  dossiers `android/`/`ios/` sont générés avec les permissions caméra
-  nécessaires. Non testé faute de SDK Android/Xcode ici : la
-  compilation/exécution réelle sur appareil. Reste à faire :
-  synchronisation en arrière-plan, upload du fichier photo (seul son
-  chemin local est synchronisé pour l'instant), icône d'app — voir
-  `mobile/README.md`.
-- Un bug d'interopérabilité de format de date entre Dart et Python
-  (qui aurait fait échouer toute vérification de signature en usage
-  réel) a été trouvé et corrigé pendant cette validation croisée — voir
-  `docs/DB-SCHEMA.md` § "Piège d'interopérabilité".
+  frontière — envoyée au serveur après la synchro des données, pas
+  seulement son chemin local — scan QR par caméra au dépôt avec
+  `mobile_scanner`, saisie manuelle de secours, historiques locaux,
+  déconnexion), base SQLite locale, logique de signature/vérification,
+  le tout suivant les maquettes et validé avec un vrai SDK Flutter
+  (3.47.5 stable) : `flutter analyze` propre, `flutter test` passe
+  (`8 passed`). Les dossiers `android/`/`ios/` sont générés avec les
+  permissions caméra nécessaires. Non testé faute de SDK Android/Xcode
+  ici : la compilation/exécution réelle sur appareil. Reste à faire :
+  synchronisation en arrière-plan, icône d'app, stockage persistant des
+  photos en production — voir `mobile/README.md` et `backend/README.md`.
+- Deux bugs réels trouvés et corrigés pendant cette validation croisée
+  Dart/Python — un piège de format de date qui aurait fait échouer
+  toute vérification de signature, et une fuite du chemin photo local
+  (sans signification hors de l'appareil) dans les données
+  synchronisées — voir `docs/DB-SCHEMA.md`.

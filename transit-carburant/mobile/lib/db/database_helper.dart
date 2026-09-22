@@ -52,6 +52,7 @@ class DatabaseHelper {
             unite TEXT NOT NULL,
             numero_scelle TEXT NOT NULL,
             photo_path TEXT,
+            photo_synced INTEGER NOT NULL DEFAULT 0,
             agent_frontiere_id TEXT NOT NULL,
             signature_numerique TEXT NOT NULL,
             date_creation TEXT NOT NULL,

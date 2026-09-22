@@ -3,7 +3,9 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
+from app.config import MEDIA_ROOT, PHOTOS_DIR
 from app.database import Base, SessionLocal, engine
 from app.models import RoleEnum, User
 from app.routers import auth, dashboard, postes, sync, users
@@ -14,6 +16,7 @@ from app.security import hash_password
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     _bootstrap_admin()
+    PHOTOS_DIR.mkdir(parents=True, exist_ok=True)
     yield
 
 
@@ -32,6 +35,9 @@ app.include_router(users.router)
 app.include_router(postes.router)
 app.include_router(sync.router)
 app.include_router(dashboard.router)
+
+MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(MEDIA_ROOT)), name="media")
 
 
 def _bootstrap_admin() -> None:

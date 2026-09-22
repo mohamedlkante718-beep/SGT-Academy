@@ -1,8 +1,10 @@
+import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
+from app.config import PHOTOS_DIR
 from app.database import get_db
 from app.deps import require_role
 from app.models import (
@@ -25,11 +27,14 @@ from app.schemas import (
     ControleOut,
     ManifesteBatchIn,
     ManifesteBatchOut,
+    ManifestePhotoOut,
     ManifesteSyncResult,
 )
 from app.security import build_manifeste_payload, verify_manifeste_signature
 
 router = APIRouter(prefix="/sync", tags=["sync"])
+
+_EXTENSIONS_AUTORISEES = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}
 
 
 def _get_or_create_vehicule(db: Session, plaque: str, type_citerne: str | None) -> Vehicule:
@@ -210,3 +215,49 @@ def sync_controles(payload: ControleBatchIn, db: Session = Depends(get_db)) -> C
 
     db.commit()
     return ControleBatchOut(resultats=resultats)
+
+
+_TAILLE_PHOTO_MAX_OCTETS = 8 * 1024 * 1024
+
+
+@router.post(
+    "/manifestes/{manifeste_id}/photo",
+    response_model=ManifestePhotoOut,
+    dependencies=[Depends(require_role("agent_frontiere", "admin"))],
+)
+async def uploader_photo_manifeste(
+    manifeste_id: str, fichier: UploadFile, db: Session = Depends(get_db)
+) -> ManifestePhotoOut:
+    """Reçoit la photo de la citerne/du scellé, prise hors ligne à la
+    frontière et envoyée séparément une fois la synchronisation des
+    données (plus légère et prioritaire) déjà passée.
+    """
+    manifeste = db.get(Manifeste, manifeste_id)
+    if manifeste is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Manifeste introuvable")
+
+    extension = _EXTENSIONS_AUTORISEES.get(fichier.content_type or "")
+    if extension is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Format d'image non supporté (jpeg, png ou webp uniquement)",
+        )
+
+    contenu = await fichier.read()
+    if len(contenu) > _TAILLE_PHOTO_MAX_OCTETS:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Photo trop volumineuse (max 8 Mo)")
+
+    try:
+        # Normalise et valide au passage : le nom de fichier ne doit
+        # jamais dépendre directement d'une valeur fournie par le
+        # client (risque de traversée de chemin).
+        nom_fichier = f"{uuid.UUID(manifeste_id)}{extension}"
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Identifiant de manifeste invalide")
+
+    (PHOTOS_DIR / nom_fichier).write_bytes(contenu)
+
+    manifeste.photo_path = f"/media/photos/{nom_fichier}"
+    db.commit()
+
+    return ManifestePhotoOut(manifeste_id=manifeste.id, photo_path=manifeste.photo_path)

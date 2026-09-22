@@ -54,6 +54,29 @@ class LocalRepository {
     );
   }
 
+  /// Manifestes dont les données sont déjà synchronisées et qui ont
+  /// une photo locale pas encore envoyée au serveur. L'envoi de la
+  /// photo n'est jamais un préalable à la synchronisation des données
+  /// elles-mêmes : plus léger et prioritaire, il passe toujours avant.
+  Future<List<Manifeste>> manifestesAvecPhotoAEnvoyer() async {
+    final db = await _db;
+    final rows = await db.query(
+      'manifestes',
+      where: "sync_status = 'synced' AND photo_path IS NOT NULL AND photo_synced = 0",
+    );
+    return rows.map(Manifeste.fromDbMap).toList();
+  }
+
+  Future<void> marquerPhotoSynchronisee(String id) async {
+    final db = await _db;
+    await db.update(
+      'manifestes',
+      {'photo_synced': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
   Future<void> insertControleDepot(ControleDepot controle) async {
     final db = await _db;
     await db.insert('controles_depot', controle.toDbMap());

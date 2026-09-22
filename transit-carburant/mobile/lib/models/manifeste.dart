@@ -43,6 +43,7 @@ class Manifeste {
   final Unite unite;
   final String numeroScelle;
   final String? photoPath;
+  final bool photoSynced;
   final String agentFrontiereId;
   final String signatureNumerique;
   final DateTime dateCreation;
@@ -65,6 +66,7 @@ class Manifeste {
     required this.unite,
     required this.numeroScelle,
     this.photoPath,
+    this.photoSynced = false,
     required this.agentFrontiereId,
     required this.signatureNumerique,
     required this.dateCreation,
@@ -91,7 +93,12 @@ class Manifeste {
     ].join('|');
   }
 
-  Map<String, Object?> toSyncJson() => {
+  /// Champs communs au JSON de synchronisation et au QR. Ne contient
+  /// JAMAIS `photo_path` : ce chemin est local à l'appareil qui a pris
+  /// la photo (sans signification pour le serveur ou l'appareil
+  /// dépôt) — la photo elle-même est envoyée séparément, une fois le
+  /// manifeste synchronisé, via `ApiClient.envoyerPhoto`.
+  Map<String, Object?> _champsPartages() => {
         'id': id,
         'plaque_immatriculation': plaqueImmatriculation,
         'type_citerne': typeCiterne,
@@ -106,19 +113,22 @@ class Manifeste {
         'quantite_declaree': quantiteDeclaree,
         'unite': unite.apiValue,
         'numero_scelle': numeroScelle,
-        'photo_path': photoPath,
         'agent_frontiere_id': agentFrontiereId,
         'signature_numerique': signatureNumerique,
         'date_creation': dateCreation.toUtc().toIso8601String(),
       };
 
+  Map<String, Object?> toSyncJson() => _champsPartages();
+
   /// Contenu encodé dans le QR remis au chauffeur : le manifeste
   /// complet + sa signature, pour une vérification hors ligne au
   /// dépôt sans dépendre du serveur.
-  Map<String, Object?> toQrPayload() => toSyncJson();
+  Map<String, Object?> toQrPayload() => _champsPartages();
 
   Map<String, Object?> toDbMap() => {
-        ...toSyncJson(),
+        ..._champsPartages(),
+        'photo_path': photoPath,
+        'photo_synced': photoSynced ? 1 : 0,
         'statut': statut.name,
         'sync_status': syncStatus.name,
       };
@@ -164,6 +174,7 @@ class Manifeste {
         unite: Unite.values.byName(map['unite'] as String),
         numeroScelle: map['numero_scelle'] as String,
         photoPath: map['photo_path'] as String?,
+        photoSynced: (map['photo_synced'] as int? ?? 0) == 1,
         agentFrontiereId: map['agent_frontiere_id'] as String,
         signatureNumerique: map['signature_numerique'] as String,
         dateCreation: DateTime.parse(map['date_creation'] as String),
@@ -171,7 +182,7 @@ class Manifeste {
         syncStatus: SyncStatus.values.byName(map['sync_status'] as String),
       );
 
-  Manifeste copyWith({ManifesteStatut? statut, SyncStatus? syncStatus}) => Manifeste(
+  Manifeste copyWith({ManifesteStatut? statut, SyncStatus? syncStatus, bool? photoSynced}) => Manifeste(
         id: id,
         plaqueImmatriculation: plaqueImmatriculation,
         typeCiterne: typeCiterne,
@@ -187,6 +198,7 @@ class Manifeste {
         unite: unite,
         numeroScelle: numeroScelle,
         photoPath: photoPath,
+        photoSynced: photoSynced ?? this.photoSynced,
         agentFrontiereId: agentFrontiereId,
         signatureNumerique: signatureNumerique,
         dateCreation: dateCreation,

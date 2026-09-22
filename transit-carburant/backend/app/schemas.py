@@ -1,6 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+UUID_PATTERN = r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 
 from app.models import (
     AlerteGraviteEnum,
@@ -92,7 +94,7 @@ class ManifesteIn(BaseModel):
     serveur inconnu du téléphone au moment de la création hors ligne.
     """
 
-    id: str
+    id: str = Field(pattern=UUID_PATTERN)
     plaque_immatriculation: str
     type_citerne: str | None = None
     transporteur_nom: str
@@ -150,6 +152,11 @@ class ManifesteBatchIn(BaseModel):
 
 class ManifesteBatchOut(BaseModel):
     resultats: list[ManifesteSyncResult]
+
+
+class ManifestePhotoOut(BaseModel):
+    manifeste_id: str
+    photo_path: str
 
 
 # --- Sync : contrôles dépôt ---

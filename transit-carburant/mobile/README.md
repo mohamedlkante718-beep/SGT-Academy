@@ -6,7 +6,7 @@ superviseur, sur la base des maquettes de conception. Voir
 projet pour le contexte complet.
 
 > **Validé** avec Flutter 3.47.5 (stable) : `flutter analyze` ne
-> remonte aucun problème et `flutter test` passe (6/6, dans
+> remonte aucun problème et `flutter test` passe (8/8, dans
 > `test/crypto_and_manifeste_test.dart`), y compris un test de
 > régression pour un vrai piège d'interopérabilité trouvé pendant
 > cette validation (voir encadré ci-dessous). Les dossiers `android/`
@@ -49,7 +49,9 @@ projet pour le contexte complet.
 - Déconnexion disponible sur les trois écrans (frontière, dépôt,
   superviseur) — absente jusqu'ici.
 - Synchronisation différée, idempotente, silencieuse en cas d'échec
-  réseau (`SyncService`).
+  réseau (`SyncService`), y compris l'envoi du fichier photo lui-même
+  (pas seulement son chemin local) une fois le manifeste déjà
+  synchronisé — voir `docs/DB-SCHEMA.md` § "Envoi de la photo...".
 - Stockage sécurisé de la clé privée de signature d'un poste
   (`flutter_secure_storage`, jamais en clair, jamais envoyée au
   serveur).
@@ -63,9 +65,6 @@ projet pour le contexte complet.
 - Test sur un appareil Android réel (permission caméra, autonomie,
   écran d'entrée de gamme) — voir la limite de cet environnement
   ci-dessus.
-- Upload de la photo capturée lors de la synchronisation (aujourd'hui
-  seul le chemin local `photo_path` est stocké/synchronisé comme
-  texte ; le fichier image lui-même ne quitte pas le téléphone).
 
 ## Installation
 

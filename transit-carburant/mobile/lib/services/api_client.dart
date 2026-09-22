@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../models/poste.dart';
 
@@ -69,6 +70,32 @@ class ApiClient {
     _throwIfError(response);
     final body = jsonDecode(response.body) as Map<String, Object?>;
     return (body['resultats'] as List<dynamic>).cast<Map<String, Object?>>();
+  }
+
+  /// Envoie la photo (prise via la caméra, donc systématiquement
+  /// réencodée en JPEG par `image_picker`) après que le manifeste
+  /// lui-même a déjà été synchronisé — c'est un envoi plus lourd,
+  /// jamais un prérequis pour la vérification hors ligne au dépôt.
+  Future<String> envoyerPhoto({
+    required String token,
+    required String manifesteId,
+    required String cheminFichier,
+  }) async {
+    final uri = Uri.parse('$baseUrl/sync/manifestes/$manifesteId/photo');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..files.add(
+        await http.MultipartFile.fromPath(
+          'fichier',
+          cheminFichier,
+          contentType: MediaType('image', 'jpeg'),
+        ),
+      );
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+    _throwIfError(response);
+    final body = jsonDecode(response.body) as Map<String, Object?>;
+    return body['photo_path'] as String;
   }
 
   Future<Map<String, Object?>> tableauDeBordResume({required String token}) async {

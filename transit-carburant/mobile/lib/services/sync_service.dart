@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../db/local_repository.dart';
 import 'api_client.dart';
 import 'session_service.dart';
@@ -60,6 +62,25 @@ class SyncService {
       }
     } catch (_) {
       // Idem : échec silencieux, nouvelle tentative plus tard.
+    }
+
+    try {
+      final manifestesAvecPhoto = await _repository.manifestesAvecPhotoAEnvoyer();
+      for (final manifeste in manifestesAvecPhoto) {
+        final chemin = manifeste.photoPath;
+        if (chemin == null) continue;
+        if (!await File(chemin).exists()) {
+          // Photo supprimée du cache de l'appareil entre-temps : on ne
+          // pourra plus jamais l'envoyer, on arrête d'essayer.
+          await _repository.marquerPhotoSynchronisee(manifeste.id);
+          continue;
+        }
+        await _apiClient.envoyerPhoto(token: token, manifesteId: manifeste.id, cheminFichier: chemin);
+        await _repository.marquerPhotoSynchronisee(manifeste.id);
+        total++;
+      }
+    } catch (_) {
+      // Pas de réseau : nouvelle tentative à la prochaine synchronisation.
     }
 
     return total;

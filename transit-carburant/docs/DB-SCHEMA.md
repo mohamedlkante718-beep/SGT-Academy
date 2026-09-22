@@ -62,12 +62,13 @@ serveur central (PostgreSQL). Le champ `sync_status` n'existe que côté local.
 | quantite_declaree | float | |
 | unite | enum | litres \| kg |
 | numero_scelle | text | |
-| photo_path | text | chemin local, uploadé lors de la sync |
+| photo_path | text | serveur : URL `/media/photos/...` une fois la photo envoyée (endpoint dédié, jamais dans le JSON de synchronisation du manifeste) ; local : chemin du fichier sur l'appareil |
 | agent_frontiere_id | uuid (FK -> users) | |
 | signature_numerique | text | signature Ed25519 (base64) du contenu du manifeste |
 | date_creation | datetime | |
 | statut | enum | genere \| en_route \| controle_depot \| valide \| anomalie |
 | sync_status (local uniquement) | enum | local_only \| synced \| conflict |
+| photo_synced (local uniquement) | bool | la photo elle-même a été envoyée séparément (voir plus bas) |
 
 ## controles_depot
 | Champ | Type |
@@ -139,3 +140,20 @@ appareils. Le backend traite donc `date_creation` comme une chaîne
 opaque pour la vérification de signature, et ne la convertit en
 `datetime` que pour le stockage en base (voir
 `backend/app/routers/sync.py::_parse_iso_datetime`).
+
+## Envoi de la photo de la citerne/du scellé
+
+La photo n'est jamais incluse dans le JSON de synchronisation du
+manifeste (`POST /sync/manifestes`) ni dans le QR remis au chauffeur :
+son chemin, avant envoi, n'a de sens que sur l'appareil qui l'a prise
+(ex. `/data/user/0/.../cache/photo123.jpg`) et n'apporte rien à un
+autre appareil ou au serveur. Elle est envoyée séparément, une fois le
+manifeste lui-même synchronisé, via `POST
+/sync/manifestes/{manifeste_id}/photo` (upload multipart, jpeg/png/webp,
+8 Mo max). Le serveur stocke le fichier sous `MEDIA_ROOT/photos/` et
+met à jour `Manifeste.photo_path` avec l'URL `/media/photos/...`
+correspondante — jamais avec un chemin fourni tel quel par le client
+(le nom de fichier est reconstruit à partir de l'UUID du manifeste,
+pour éviter toute traversée de chemin). Côté mobile, `SyncService`
+retente cet envoi à chaque synchronisation tant que
+`photo_synced` reste à `false` localement.

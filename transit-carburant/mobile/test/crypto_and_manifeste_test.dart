@@ -151,5 +151,32 @@ void main() {
       expect(restaure.signatureNumerique, original.signatureNumerique);
       expect(restaure.canonicalPayload(), original.canonicalPayload());
     });
+
+    test('le chemin photo local ne fuite jamais vers le JSON de sync ou le QR', () {
+      final manifeste = Manifeste(
+        id: 'photo-1',
+        plaqueImmatriculation: 'ML-9999-PH',
+        transporteurNom: 'Test Transport',
+        chauffeurNom: 'Test Chauffeur',
+        chauffeurPieceIdentite: 'CNI-9',
+        posteFrontiereId: 'poste-3',
+        depotDestinationId: 'depot-3',
+        typeCargaison: Cargaison.essence,
+        quantiteDeclaree: 10000,
+        unite: Unite.litres,
+        numeroScelle: 'SC-9',
+        // Chemin propre à CET appareil : n'a aucun sens pour le
+        // serveur ni pour l'appareil dépôt qui scannera le QR.
+        photoPath: '/data/user/0/com.example/cache/image_picker/photo123.jpg',
+        agentFrontiereId: 'agent-3',
+        signatureNumerique: 'sig',
+        dateCreation: DateTime.utc(2026, 5, 6, 7, 8, 9),
+      );
+
+      expect(manifeste.toSyncJson().containsKey('photo_path'), isFalse);
+      expect(manifeste.toQrPayload().containsKey('photo_path'), isFalse);
+      // Mais bien conservé pour le stockage et l'affichage locaux.
+      expect(manifeste.toDbMap()['photo_path'], manifeste.photoPath);
+    });
   });
 }

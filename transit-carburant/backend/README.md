@@ -37,6 +37,7 @@ Documentation interactive de l'API : http://127.0.0.1:8000/docs
 | `JWT_SECRET` | `dev-secret-change-me` | **À changer impérativement en production** |
 | `ADMIN_BOOTSTRAP_MATRICULE` | `admin` | Matricule du compte admin initial |
 | `ADMIN_BOOTSTRAP_PASSWORD` | `admin1234` | Mot de passe du compte admin initial |
+| `MEDIA_ROOT` | `./media` | Dossier de stockage des photos uploadées (servi sous `/media`) — à faire pointer vers un disque persistant en production, un service comme Render efface le disque local à chaque redéploiement |
 
 ## Tests
 
@@ -47,11 +48,21 @@ pytest -v
 Les tests couvrent le parcours complet (création de poste avec
 génération de clés Ed25519, création des comptes agents, envoi d'un
 manifeste signé, idempotence de la synchronisation, contrôle dépôt,
-et lecture du tableau de bord), le rejet d'une signature invalide, et
-la vérification d'une signature dont la date est au format produit par
+et lecture du tableau de bord), le rejet d'une signature invalide, la
+vérification d'une signature dont la date est au format produit par
 l'appli mobile (Dart) plutôt que par Python — un vrai piège
 d'interopérabilité trouvé et corrigé pendant le développement (voir
-`docs/DB-SCHEMA.md`). Validés dans cet environnement : `4 passed`.
+`docs/DB-SCHEMA.md`) — et l'upload de la photo d'un manifeste (formats
+acceptés, rejet, authentification). Chaque test tourne sur sa propre
+base isolée (voir `tests/conftest.py`) : un test ne peut jamais fausser
+le résultat d'un autre en partageant des données. Validés dans cet
+environnement : `8 passed`.
+
+**À faire avant la production** : `MEDIA_ROOT` pointe par défaut vers
+un dossier local — sur un hébergeur comme Render, le disque n'est pas
+persistant entre redéploiements, il faudra soit un disque persistant
+payant, soit migrer vers un stockage objet compatible S3 (ex. Cloudflare
+R2, dont le tier gratuit couvre largement les besoins d'un pilote).
 
 ## Hébergement à très faible coût
 
