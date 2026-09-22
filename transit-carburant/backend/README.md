@@ -58,6 +58,12 @@ base isolée (voir `tests/conftest.py`) : un test ne peut jamais fausser
 le résultat d'un autre en partageant des données. Validés dans cet
 environnement : `8 passed`.
 
+Un test supplémentaire, `tests/test_postgres_compat.py`, rejoue le
+parcours complet sur une vraie base **PostgreSQL** plutôt que SQLite
+(ignoré par défaut, activé avec `TEST_DATABASE_URL=postgresql://...`)
+— c'est celui qui a servi à valider le passage en production, avec un
+PostgreSQL 16 réel installé dans l'environnement de développement.
+
 **À faire avant la production** : `MEDIA_ROOT` pointe par défaut vers
 un dossier local — sur un hébergeur comme Render, le disque n'est pas
 persistant entre redéploiements, il faudra soit un disque persistant
@@ -68,5 +74,7 @@ R2, dont le tier gratuit couvre largement les besoins d'un pilote).
 
 Aucun VPS n'est nécessaire pour démarrer : ce service est un simple
 service web stateless + une base de données, déployable sur les tiers
-gratuits de Render ou Fly.io (voir la section "Contrainte financière"
-du cahier des charges).
+gratuits de Render ou Fly.io. Voir `docs/DEPLOIEMENT.md` pour la
+marche à suivre complète (Render + base PostgreSQL gratuite externe),
+et la section "Contrainte financière" du cahier des charges pour le
+raisonnement d'ensemble.

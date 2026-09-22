@@ -1,0 +1,22 @@
+# Blueprint Render optionnel. Le chemin le plus fiable reste la
+# création manuelle du service via l'interface Render (voir
+# docs/DEPLOIEMENT.md) — ce fichier est une commodité pour qui préfère
+# l'infrastructure-as-code, à adapter si Render vous demande de
+# localiser render.yaml dans un dépôt multi-projets comme celui-ci.
+services:
+  - type: web
+    name: transit-carburant-api
+    runtime: python
+    plan: free
+    rootDir: transit-carburant/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_BOOTSTRAP_MATRICULE
+        value: admin
+      - key: ADMIN_BOOTSTRAP_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        sync: false

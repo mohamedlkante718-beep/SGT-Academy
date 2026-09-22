@@ -13,7 +13,7 @@ l'enregistrement manuel, camion par camion, sur papier.
 
 ```
 transit-carburant/
-├── docs/       # cahier des charges, schéma de base de données
+├── docs/       # cahier des charges, schéma de base de données, déploiement
 ├── backend/    # API centrale FastAPI (Python) — testée, fonctionnelle
 └── mobile/     # application Flutter (agents + supervision) — analysée et testée (flutter analyze/test)
 ```
@@ -23,13 +23,17 @@ transit-carburant/
 1. Lire `docs/CAHIER-DES-CHARGES.md` pour le contexte fonctionnel.
 2. Lancer le backend : voir `backend/README.md`.
 3. Lancer l'application mobile : voir `mobile/README.md`.
+4. Déployer le backend en ligne : voir `docs/DEPLOIEMENT.md`.
 
 ## État actuel
 
 - Backend : auth, gestion des postes avec génération de clés Ed25519,
   synchronisation idempotente des manifestes et des contrôles, upload
   de la photo d'un manifeste, tableau de bord — couvert par des tests
-  qui passent, chacun sur sa propre base isolée (`8 passed`).
+  qui passent, chacun sur sa propre base isolée (`8 passed`), plus un
+  test dédié qui rejoue tout le parcours sur une vraie base PostgreSQL
+  (pas seulement SQLite) — validé avec un PostgreSQL 16 réel installé
+  dans l'environnement de développement.
 - Mobile : écrans complets (dont photo de la citerne/du scellé à la
   frontière — envoyée au serveur après la synchro des données, pas
   seulement son chemin local — scan QR par caméra au dépôt avec
@@ -42,8 +46,17 @@ transit-carburant/
   ici : la compilation/exécution réelle sur appareil. Reste à faire :
   synchronisation en arrière-plan, icône d'app, stockage persistant des
   photos en production — voir `mobile/README.md` et `backend/README.md`.
-- Deux bugs réels trouvés et corrigés pendant cette validation croisée
-  Dart/Python — un piège de format de date qui aurait fait échouer
-  toute vérification de signature, et une fuite du chemin photo local
-  (sans signification hors de l'appareil) dans les données
-  synchronisées — voir `docs/DB-SCHEMA.md`.
+- Déploiement : marche à suivre complète dans `docs/DEPLOIEMENT.md`
+  (Render + base PostgreSQL gratuite externe). L'image Docker fournie
+  (`backend/Dockerfile`, `docker-compose.yml`) n'a pas pu être
+  construite dans cet environnement de développement, dont la
+  politique réseau bloque l'accès au CDN de Docker Hub — sans rapport
+  avec les serveurs de Render, qui construisent ailleurs.
+- Trois bugs réels trouvés et corrigés en validant ce projet avec de
+  vrais outils plutôt qu'en se fiant à la relecture : un piège de
+  format de date entre Dart et Python qui aurait fait échouer toute
+  vérification de signature, une fuite du chemin photo local (sans
+  signification hors de l'appareil) dans les données synchronisées, et
+  un test censé valider PostgreSQL qui validait silencieusement la
+  mauvaise base de données — voir `docs/DB-SCHEMA.md` et
+  `backend/tests/test_postgres_compat.py`.
