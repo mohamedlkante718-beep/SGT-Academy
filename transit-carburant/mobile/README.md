@@ -55,13 +55,17 @@ projet pour le contexte complet.
 - Stockage sécurisé de la clé privée de signature d'un poste
   (`flutter_secure_storage`, jamais en clair, jamais envoyée au
   serveur).
+- Icône d'application et écran de démarrage aux couleurs de la marque
+  (bouclier-goutte navy/teal — voir `assets/icon/`), générés avec
+  `flutter_launcher_icons` et `flutter_native_splash` à partir des
+  sources dans `assets/icon/app_icon.png` (icône pleine, fond navy) et
+  `app_icon_foreground.png` (glyphe seul, transparent — couche
+  adaptative Android et image de démarrage).
 
 ## Ce qui reste à faire
 
 - Synchronisation en arrière-plan périodique (aujourd'hui déclenchée
   après chaque création/contrôle, mais pas de tâche planifiée).
-- Icône d'application et écran de démarrage personnalisés (les
-  assets par défaut de `flutter create` sont encore en place).
 - Test sur un appareil Android réel (permission caméra, autonomie,
   écran d'entrée de gamme) — voir la limite de cet environnement
   ci-dessus.
@@ -76,6 +80,16 @@ flutter run --dart-define=API_BASE_URL=http://<ip-du-backend>:8000
 
 Par défaut, `API_BASE_URL` vaut `http://10.0.2.2:8000` (accès au
 `localhost` de la machine hôte depuis l'émulateur Android).
+
+## Identité visuelle
+
+Pour régénérer les icônes/l'écran de démarrage après une modification
+des fichiers sous `assets/icon/` :
+
+```bash
+dart run flutter_launcher_icons
+dart run flutter_native_splash:create
+```
 
 ## Provisionnement d'un poste frontière
 
