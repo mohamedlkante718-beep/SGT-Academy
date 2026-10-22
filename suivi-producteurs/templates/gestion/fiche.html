@@ -1,6 +1,7 @@
 {% extends "gestion/base_gestion.html" %}
 {% load suivi %}
-{% block titre %}{{ producteur.nom }}{% if fiche and est_admin %}<p class="muted small">Pour corriger un chiffre envoyé par le producteur : <a href="{{ correction_url }}">correction avancée de la fiche</a>.</p>{% endif %}
+{% block titre %}{{ producteur.nom }}{% if fiche and est_admin %}<p class="muted small">Pour corriger un chiffre envoyé par le producteur : <a href="{{ correction_url }}">correction avancée de la fiche</a>.
+  Fiche envoyée par erreur ? <a class="danger" href="{% url 'fiche_supprimer' fiche.pk %}">Supprimer cette fiche</a>.</p>{% endif %}
 {% endblock %}
 {% block contenu %}
 <section class="section">

@@ -147,3 +147,5 @@ label.case input, .saisie-table input[type="checkbox"] { width: auto; }
 .brand .brand-texte > span { color: var(--muted); font-size: .85rem; }
 .brand .logo { height: 44px; width: auto; max-width: 120px; object-fit: contain; }
 .logo-connexion { height: 90px; width: auto; max-width: 70%; object-fit: contain; align-self: center; }
+a.danger { color: var(--down); font-weight: 600; }
+.btn.danger-fond { background: var(--down); border-color: var(--down); color: var(--surface); }

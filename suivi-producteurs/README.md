@@ -111,6 +111,11 @@ puis remplissez les lignes « Dépenses » et « Ventes » en bas de la page.
 **Prêts** : dans **Prêts**, ajoutez chaque prêt ou avance accordé et chaque remboursement reçu.
 Le tableau de bord calcule le montant restant dû.
 
+**Supprimer une fiche envoyée par erreur** : le producteur peut la supprimer lui-même depuis son téléphone
+(lien « Supprimer cette fiche » en bas de sa fiche) tant qu'elle n'est pas validée. Une fois validée, seul
+l'administrateur peut la supprimer (lien « Supprimer cette fiche » en bas de la fiche du producteur). Une page demande
+toujours de confirmer. Le responsable ne peut rien supprimer.
+
 **Logo** : dans `/admin/`, rubrique **Logo**, cliquez sur **Ajouter**, choisissez l'image (PNG ou JPG), puis **Enregistrer**.
 Il s'affiche en haut des pages, sur la page de connexion et dans le rapport imprimable. Pour le changer, ouvrez la même rubrique.
 
@@ -130,7 +135,7 @@ Le tableau de bord garde l'export CSV de la semaine et un lien direct vers le ra
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_fiches_excel && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 35 tests
+python manage.py test producteurs   # 40 tests
 ```
 
 ## À venir

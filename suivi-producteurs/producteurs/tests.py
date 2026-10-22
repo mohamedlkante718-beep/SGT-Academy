@@ -400,3 +400,49 @@ class LogoTests(TestCase):
                              {"logo": SimpleUploadedFile("virus.exe", b"MZ", content_type="application/octet-stream")})
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "extension")
+
+
+class SuppressionTests(TestCase):
+    def setUp(self):
+        self.p = creer_producteur("Alpha GANO", "76000001", [produit("Poulets")])
+        self.fiche = Fiche.objects.create(producteur=self.p, semaine=S1)
+        LigneValeur.objects.create(fiche=self.fiche, libelle="Poulets", montant=1000)
+
+    def test_producteur_supprime_sa_fiche_non_validee(self):
+        self.client.login(username="76000001", password="1234")
+        url = reverse("saisie_supprimer", args=["2026-10-14"])
+        self.assertContains(self.client.get(url), "Oui, supprimer")
+        self.assertTrue(Fiche.objects.exists())  # rien n'est supprimé sans confirmation
+        self.assertRedirects(self.client.post(url), reverse("accueil"))
+        self.assertFalse(Fiche.objects.exists())
+
+    def test_producteur_ne_supprime_pas_une_fiche_validee(self):
+        self.fiche.statut = Fiche.VALIDEE
+        self.fiche.save()
+        self.client.login(username="76000001", password="1234")
+        self.client.post(reverse("saisie_supprimer", args=["2026-10-14"]))
+        self.assertTrue(Fiche.objects.exists())
+
+    def test_producteur_ne_supprime_pas_la_fiche_d_un_autre(self):
+        creer_producteur("Autre", "76000002")
+        self.client.login(username="76000002", password="1234")
+        self.assertEqual(self.client.post(reverse("saisie_supprimer", args=["2026-10-14"])).status_code, 404)
+        self.assertTrue(Fiche.objects.exists())
+
+    def test_administrateur_supprime_meme_validee(self):
+        self.fiche.statut = Fiche.VALIDEE
+        self.fiche.save()
+        get_user_model().objects.create_superuser("chef", password="secret-123")
+        self.client.login(username="chef", password="secret-123")
+        url = reverse("fiche_supprimer", args=[self.fiche.pk])
+        self.assertContains(self.client.get(url), "Oui, supprimer définitivement")
+        self.assertRedirects(self.client.post(url), reverse("fiche_producteur", args=[self.p.pk]))
+        self.assertFalse(Fiche.objects.exists())
+
+    def test_responsable_ne_supprime_pas(self):
+        r = Responsable.objects.create(nom="R", telephone="76000200", utilisateur=compte("76000200"))
+        self.p.responsable = r
+        self.p.save()
+        self.client.login(username="76000200", password="1234")
+        self.client.post(reverse("fiche_supprimer", args=[self.fiche.pk]))
+        self.assertTrue(Fiche.objects.exists())

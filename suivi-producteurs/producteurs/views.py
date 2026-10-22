@@ -200,6 +200,23 @@ def saisie(request, semaine=None):
     })
 
 
+@login_required
+def saisie_supprimer(request, semaine):
+    """Le producteur retire une fiche envoyée par erreur, tant qu'elle n'est pas validée."""
+    producteur = getattr(request.user, "producteur", None)
+    if producteur is None:
+        return redirect("accueil")
+    fiche = get_object_or_404(producteur.fiches, semaine=_date_ou_404(semaine))
+    if fiche.statut == Fiche.VALIDEE:
+        messages.error(request, "Cette fiche est déjà validée : demandez à l'administrateur de la supprimer.")
+        return redirect("saisie_semaine", semaine=semaine)
+    if request.method == "POST":
+        fiche.delete()
+        messages.success(request, f"La fiche de la semaine du {fiche.semaine:%d/%m} a été supprimée.")
+        return redirect("accueil")
+    return render(request, "mobile/confirmer_suppression.html", {"fiche": fiche, "producteur": producteur})
+
+
 # ---------------------------------------------------------------- web (administrateur et responsables)
 
 @suivi_requis

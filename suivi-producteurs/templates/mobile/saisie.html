@@ -54,6 +54,7 @@
     <h2>Observations</h2>
     <textarea name="observations" rows="3" placeholder="État des animaux ou des plants, naissances, maladies, mortalités…" {% if verrouillee %}disabled{% endif %}>{{ observations }}</textarea>
   </div>
+  {% if fiche.pk and not verrouillee %}<p class="small"><a class="danger" href="{% url 'saisie_supprimer' semaine|date:'Y-m-d' %}">Supprimer cette fiche (envoyée par erreur)</a></p>{% endif %}
   <p class="muted small">Laissez vide un produit que vous n'avez pas cette semaine. Il manque un produit ? Demandez à l'administrateur du {{ sigle }} de vous l'attribuer.</p>
 </form>
 {% endif %}

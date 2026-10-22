@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load suivi %}
+{% block titre %}Supprimer ma fiche{% endblock %}
+{% block corps %}mobile{% endblock %}
+{% block contenu %}
+<section class="section">
+  <h1>Supprimer votre fiche ?</h1>
+  <div class="card">
+    <p>Fiche de la semaine du <b>{{ fiche.semaine|date:"j F" }} au {{ fiche.fin|date:"j F Y" }}</b>.</p>
+    <p class="muted">Tout ce que vous avez rempli pour cette semaine sera effacé. Vous pourrez ensuite la remplir à nouveau.</p>
+    <form method="post" class="section">
+      {% csrf_token %}
+      <button class="btn primary big danger-fond" type="submit">Oui, supprimer</button>
+      <a class="btn big" href="{% url 'saisie_semaine' fiche.semaine|date:'Y-m-d' %}">Non, revenir à ma fiche</a>
+    </form>
+  </div>
+</section>
+{% endblock %}

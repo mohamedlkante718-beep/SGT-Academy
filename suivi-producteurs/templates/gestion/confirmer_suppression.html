@@ -1,0 +1,18 @@
+{% extends "gestion/base_gestion.html" %}
+{% load suivi %}
+{% block titre %}Supprimer une fiche{% endblock %}
+{% block contenu %}
+<section class="section">
+  <a class="btn link" href="{{ retour }}">‹ Retour à la fiche</a>
+  <h1>Supprimer la fiche de {{ fiche.producteur.nom }} ?</h1>
+</section>
+<div class="card formulaire">
+  <p>Semaine du <b>{{ fiche.semaine|date:"j F" }} au {{ fiche.fin|date:"j F Y" }}</b> · {% statut fiche %} · valeur déclarée {{ fiche.total_valeurs|nombre }} F CFA.</p>
+  <div class="notice warn">La suppression est définitive : les quantités, les valeurs, les observations, les dépenses et les ventes de cette fiche seront effacées. Le producteur pourra ensuite renvoyer une nouvelle fiche pour cette semaine.</div>
+  <form method="post" class="row">
+    {% csrf_token %}
+    <button class="btn primary danger-fond" type="submit">Oui, supprimer définitivement</button>
+    <a class="btn" href="{{ retour }}">Non, garder la fiche</a>
+  </form>
+</div>
+{% endblock %}

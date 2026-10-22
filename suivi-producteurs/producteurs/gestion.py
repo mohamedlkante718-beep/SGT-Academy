@@ -150,3 +150,15 @@ def prets(request):
     return _page(request, "gestion/prets.html", "prets", form=form, prets=liste,
                  encours=sorted(encours, key=lambda e: -e["montant"]),
                  total=sum(e["montant"] for e in encours))
+
+
+@admin_requis
+def fiche_supprimer(request, pk):
+    fiche = get_object_or_404(Fiche.objects.select_related("producteur"), pk=pk)
+    if request.method == "POST":
+        nom, semaine = fiche.producteur.nom, fiche.semaine
+        fiche.delete()
+        messages.success(request, f"La fiche de {nom} (semaine du {semaine:%d/%m/%Y}) a été supprimée.")
+        return redirect("fiche_producteur", pk=fiche.producteur_id)
+    return _page(request, "gestion/confirmer_suppression.html", "tableau", fiche=fiche,
+                 retour=f"{reverse('fiche_producteur', args=[fiche.producteur_id])}?semaine={fiche.semaine}")
