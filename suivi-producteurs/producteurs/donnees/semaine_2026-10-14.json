@@ -36,7 +36,9 @@
      "montant": 78400
     }
    ],
-   "observations": "Un bon embonpoint"
+   "observations": "Un bon embonpoint",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Mariam KONE",
@@ -56,7 +58,9 @@
      "montant": 50000
     }
    ],
-   "observations": "Embonpoint moyen"
+   "observations": "Embonpoint moyen",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Yacouba SANGARE",
@@ -72,7 +76,9 @@
      "montant": 45000
     }
    ],
-   "observations": "RAS"
+   "observations": "RAS",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Mahamadou KONATE",
@@ -88,7 +94,9 @@
      "montant": 50000
     }
    ],
-   "observations": "RAS"
+   "observations": "RAS",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Alpha GANO",
@@ -176,7 +184,9 @@
      "montant": 190000
     }
    ],
-   "observations": "Bon embonpoint. Une chèvre a mis bas trois petits, l'un est mort juste après la mise bas."
+   "observations": "Bon embonpoint. Une chèvre a mis bas trois petits, l'un est mort juste après la mise bas.",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Souleymane COULIBALY",
@@ -200,7 +210,9 @@
      "montant": 80000
     }
    ],
-   "observations": "Un bon embonpoint"
+   "observations": "Un bon embonpoint",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Massara KAMISSOKO",
@@ -216,7 +228,9 @@
      "montant": 295000
     }
    ],
-   "observations": "RAS"
+   "observations": "RAS",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Bakoroba COULIBALY",
@@ -240,7 +254,9 @@
      "montant": 65000
     }
    ],
-   "observations": "Embonpoint moyen"
+   "observations": "Embonpoint moyen",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Kalipha SANOGO",
@@ -268,7 +284,9 @@
      "montant": 240000
     }
    ],
-   "observations": "Bon embonpoint"
+   "observations": "Bon embonpoint",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Thara KANOUTE",
@@ -288,7 +306,9 @@
      "montant": 8100
     }
    ],
-   "observations": "Embonpoint moyen"
+   "observations": "Embonpoint moyen",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Siaka KEITA",
@@ -312,7 +332,9 @@
      "montant": 150000
     }
    ],
-   "observations": "RAS"
+   "observations": "RAS",
+   "depenses": [],
+   "ventes": []
   },
   {
    "nom": "Mohamed KOÏTA",
@@ -332,7 +354,10 @@
      "montant": 150000
     }
    ],
-   "observations": "RAS"
+   "observations": "RAS",
+   "depenses": [],
+   "ventes": []
   }
- ]
+ ],
+ "fin": "2026-10-20"
 }

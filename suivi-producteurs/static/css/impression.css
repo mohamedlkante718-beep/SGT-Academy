@@ -1,0 +1,37 @@
+/* Rapport imprimable : page A4 claire, quelle que soit l'apparence de l'écran. */
+body.imprimable {
+  --bg: #ffffff; --surface: #ffffff; --ink: #1d2a21; --muted: #5d6b60; --line: #d9e0d6;
+  --accent: #1f6b45; --accent-soft: #e2efe6; --ochre: #a8661a;
+  --up: #1b7a3e; --up-soft: #dff3e5; --down: #b4322a; --down-soft: #fbe3e0; --flat: #6b7280; --flat-soft: #eceeec;
+  color-scheme: light; background: #eef1ec; font-size: 14px;
+}
+.barre-impression { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: center; padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.page { max-width: 210mm; margin: 20px auto; background: #fff; padding: 14mm 14mm 10mm; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+.entete-rapport { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; border-bottom: 3px solid var(--accent); padding-bottom: 10px; }
+.entete-rapport h1 { font-size: 1.45rem; }
+.entete-rapport p.small { text-align: right; }
+.surtitre { text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.page .kpis { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.page .kpi { padding: 10px 12px; }
+.page .kpi .val { font-size: 1.1rem; }
+.page th, .page td { padding: 5px 8px; }
+.page .tablebox { overflow: visible; }
+.chart text.etiquette { fill: var(--ink); font-size: 10px; }
+table.compact { border: 1px solid var(--line); border-radius: 6px; font-size: .85rem; }
+.detail-producteur { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); break-inside: avoid; }
+.detail-producteur h3 { font-family: var(--font-display); font-size: 1rem; margin: 0; }
+.page .grid2 { grid-template-columns: 1fr 1fr; gap: 10px; }
+.pied-rapport { border-top: 1px solid var(--line); padding-top: 8px; }
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body.imprimable { background: #fff; }
+  .barre-impression { display: none; }
+  .page { margin: 0; padding: 0; box-shadow: none; max-width: none; }
+  .bloc-rapport, .kpis { break-inside: avoid; }
+  .pill { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .chart, .kpi, th, tfoot td { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+@media (max-width: 700px) {
+  .page { padding: 16px; margin: 0; }
+  .page .kpis, .page .grid2 { grid-template-columns: 1fr; }
+}

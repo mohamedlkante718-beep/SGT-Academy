@@ -1,0 +1,405 @@
+{
+ "semaine": "2026-10-08",
+ "fin": "2026-10-14",
+ "source": "Situation des producteurs du 08 au 14 octobre 2026 au CIAF - CE TOURE.xlsx",
+ "producteurs": [
+  {
+   "nom": "Alpha GANO",
+   "effectifs": [
+    {
+     "libelle": "Taureau",
+     "quantite": 1
+    },
+    {
+     "libelle": "Ovins",
+     "quantite": 4
+    },
+    {
+     "libelle": "Caprins",
+     "quantite": 22
+    },
+    {
+     "libelle": "Poulets",
+     "quantite": 45
+    },
+    {
+     "libelle": "Nouvelles éclosions poulets",
+     "quantite": 26
+    },
+    {
+     "libelle": "Œufs poules couvés",
+     "quantite": 24
+    },
+    {
+     "libelle": "Pintades",
+     "quantite": 29
+    },
+    {
+     "libelle": "Pintadeaux adultes moyens",
+     "quantite": 125
+    },
+    {
+     "libelle": "Pintadeaux",
+     "quantite": 99
+    },
+    {
+     "libelle": "Nouvelles éclosions pintadeaux",
+     "quantite": 64
+    },
+    {
+     "libelle": "Mortalités pintadeaux",
+     "quantite": 2
+    },
+    {
+     "libelle": "Œufs pintades couvés",
+     "quantite": 45
+    },
+    {
+     "libelle": "Dindes",
+     "quantite": 8
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Taureau",
+     "montant": 440000
+    },
+    {
+     "libelle": "Ovins & caprins",
+     "montant": 1930000
+    },
+    {
+     "libelle": "Poulets",
+     "montant": 270000
+    },
+    {
+     "libelle": "Pintadeaux adultes moyens",
+     "montant": 312500
+    },
+    {
+     "libelle": "Pintades",
+     "montant": 145000
+    },
+    {
+     "libelle": "Dindes",
+     "montant": 230000
+    },
+    {
+     "libelle": "Pintadeaux",
+     "montant": 180000
+    }
+   ],
+   "observations": "Bon embonpoint",
+   "depenses": [
+    {
+     "date": "2026-10-12",
+     "categorie": "aliments",
+     "description": "Sacs d'aliment démarrage, pondeuse et finition (3 sacs)",
+     "montant": 75000,
+     "mode_paiement": "especes"
+    }
+   ],
+   "ventes": []
+  },
+  {
+   "nom": "Kalipha SANOGO",
+   "effectifs": [
+    {
+     "libelle": "Canards",
+     "quantite": 12
+    },
+    {
+     "libelle": "Oies",
+     "quantite": 7
+    },
+    {
+     "libelle": "Œufs disponibles oie",
+     "quantite": 12
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Canards",
+     "montant": 207000
+    },
+    {
+     "libelle": "Oies",
+     "montant": 240000
+    }
+   ],
+   "observations": "Bon embonpoint",
+   "depenses": [],
+   "ventes": []
+  },
+  {
+   "nom": "Massara KAMISSOKO",
+   "effectifs": [
+    {
+     "libelle": "Poulets adultes moyens",
+     "quantite": 127
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Poulets adultes moyens",
+     "montant": 280000
+    }
+   ],
+   "observations": "RAS",
+   "depenses": [
+    {
+     "date": "2026-10-12",
+     "categorie": "aliments",
+     "description": "Aliment finition et maïs (1 sac et demi)",
+     "montant": 27000,
+     "mode_paiement": "especes"
+    }
+   ],
+   "ventes": []
+  },
+  {
+   "nom": "Siaka KEITA",
+   "effectifs": [
+    {
+     "libelle": "Poulets adultes",
+     "quantite": 15
+    },
+    {
+     "libelle": "Poulets adultes moyens",
+     "quantite": 49
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Poulets adultes",
+     "montant": 110000
+    },
+    {
+     "libelle": "Poulets adultes moyens",
+     "montant": 149000
+    }
+   ],
+   "observations": "En ponte",
+   "depenses": [
+    {
+     "date": "2026-10-12",
+     "categorie": "aliments",
+     "description": "Aliment finition et maïs (1 sac et demi)",
+     "montant": 27000,
+     "mode_paiement": "especes"
+    }
+   ],
+   "ventes": []
+  },
+  {
+   "nom": "Souleymane COULIBALY",
+   "effectifs": [
+    {
+     "libelle": "Poulets adultes",
+     "quantite": 227
+    },
+    {
+     "libelle": "Mortalités poulets",
+     "quantite": 2
+    },
+    {
+     "libelle": "Poulets moyens",
+     "quantite": 15
+    },
+    {
+     "libelle": "Poussins",
+     "quantite": 300
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Poulets adultes",
+     "montant": 908000
+    },
+    {
+     "libelle": "Poulets moyens",
+     "montant": 80000
+    }
+   ],
+   "observations": "Un bon embonpoint",
+   "depenses": [],
+   "ventes": [
+    {
+     "date": "2026-10-12",
+     "categorie": "Aviculture",
+     "description": "Vente poulet adulte",
+     "poids": "1,5 kg",
+     "quantite": 1,
+     "prix_unitaire": 6000,
+     "montant": 6000,
+     "mode_paiement": "orange_money",
+     "client": "Siby"
+    }
+   ]
+  },
+  {
+   "nom": "Mariam KONE",
+   "effectifs": [
+    {
+     "libelle": "Cailles adultes",
+     "quantite": 50
+    },
+    {
+     "libelle": "Œufs disponibles",
+     "quantite": 30
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Cailles adultes",
+     "montant": 50000
+    }
+   ],
+   "observations": "Embonpoint moyen",
+   "depenses": [],
+   "ventes": []
+  },
+  {
+   "nom": "Oumar dit Barou GUINDO",
+   "effectifs": [
+    {
+     "libelle": "Cailles adultes",
+     "quantite": 145
+    },
+    {
+     "libelle": "Cailleteaux",
+     "quantite": 246
+    },
+    {
+     "libelle": "Œufs couvés",
+     "quantite": 939
+    },
+    {
+     "libelle": "Œufs disponibles",
+     "quantite": 102
+    },
+    {
+     "libelle": "Mortalités cailleteaux",
+     "quantite": 5
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Cailles adultes",
+     "montant": 145000
+    },
+    {
+     "libelle": "Cailleteaux",
+     "montant": 86100
+    }
+   ],
+   "observations": "Un bon embonpoint",
+   "depenses": [
+    {
+     "date": "2026-10-12",
+     "categorie": "aliments",
+     "description": "Sac d'aliment pondeuse (1 sac)",
+     "montant": 21000,
+     "mode_paiement": "especes"
+    }
+   ],
+   "ventes": []
+  },
+  {
+   "nom": "Mahamadou KONATE",
+   "effectifs": [
+    {
+     "libelle": "Cailles adultes",
+     "quantite": 50
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Cailles adultes",
+     "montant": 50000
+    }
+   ],
+   "observations": "Ponte",
+   "depenses": [],
+   "ventes": []
+  },
+  {
+   "nom": "Yacouba SANGARE",
+   "effectifs": [
+    {
+     "libelle": "Cailles adultes",
+     "quantite": 40
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Cailles adultes",
+     "montant": 40000
+    }
+   ],
+   "observations": "Ponte",
+   "depenses": [],
+   "ventes": []
+  },
+  {
+   "nom": "Bakoroba COULIBALY",
+   "effectifs": [
+    {
+     "libelle": "Poulets adultes",
+     "quantite": 15
+    },
+    {
+     "libelle": "Poulets moyens",
+     "quantite": 24
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Poulets adultes",
+     "montant": 90000
+    },
+    {
+     "libelle": "Poulets moyens",
+     "montant": 60000
+    }
+   ],
+   "observations": "Embonpoint moyen",
+   "depenses": [],
+   "ventes": [
+    {
+     "date": "2026-10-09",
+     "categorie": "Aviculture",
+     "description": "Vente des poulets adultes",
+     "poids": "5,8 kg",
+     "quantite": 5,
+     "prix_unitaire": 4500,
+     "montant": 22500,
+     "mode_paiement": "orange_money",
+     "client": "Siby"
+    }
+   ]
+  },
+  {
+   "nom": "Mohamed KOÏTA",
+   "effectifs": [
+    {
+     "libelle": "Lapines",
+     "quantite": 4
+    },
+    {
+     "libelle": "Lapins",
+     "quantite": 2
+    }
+   ],
+   "valeurs": [
+    {
+     "libelle": "Lapins",
+     "montant": 150000
+    }
+   ],
+   "observations": "RAS",
+   "depenses": [],
+   "ventes": []
+  }
+ ]
+}

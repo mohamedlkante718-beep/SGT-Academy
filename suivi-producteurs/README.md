@@ -5,7 +5,7 @@ Application de suivi hebdomadaire des producteurs du CIAF.
 | Qui | Où | Ce qu'il fait |
 |---|---|---|
 | **Administrateur** | Ordinateur, page web `/gestion/` | Voit tout : valeur précédente, valeur actuelle, évolution (▲ hausse / ▼ baisse), dépenses, ventes, résultat net, prêts en cours. Il est le seul à créer les producteurs et les responsables, à **attribuer à chaque producteur ses produits** (et à les changer), à saisir les dépenses, les ventes et les prêts. Il peut aussi valider les fiches. |
-| **Responsable** (ex. M. Traoré) | Ordinateur ou téléphone, même adresse | Voit **uniquement ses producteurs** et leur évolution, et **valide** leurs fiches, ou les renvoie au producteur pour correction avec un commentaire. Il ne modifie rien et ne voit pas les finances. |
+| **Responsable** (ex. M. Traoré) | Ordinateur ou téléphone, même adresse | Voit **uniquement ses producteurs** et leur évolution, et **valide** leurs fiches, ou les renvoie au producteur pour correction avec un commentaire. Il voit aussi les finances et les rapports de ses producteurs, mais ne modifie rien. |
 | **Producteur** | Téléphone (application installable) | Se connecte avec son numéro et son code PIN. Il remplit uniquement **les produits que l'administrateur lui a attribués** (quantité et/ou valeur), plus ses observations. Il voit ses chiffres de la semaine d'avant et le statut de ses fiches. |
 
 **Secteurs et produits** : l'administrateur crée autant de secteurs qu'il veut, puis les produits de chaque secteur.
@@ -39,10 +39,10 @@ On peut changer ce jour avec la variable `SEMAINE_JOUR_DEBUT`, où 0 = lundi.
    mkvirtualenv suivi --python=python3.13
    pip install -r requirements.txt
    ```
-3. **Créer la base, charger la semaine du 14 octobre et créer le compte administrateur :**
+3. **Créer la base, charger les fiches Excel d'octobre (semaines du 1er, du 8 et du 14) et créer le compte administrateur :**
    ```bash
    python manage.py migrate
-   python manage.py charger_semaine_initiale
+   python manage.py charger_fiches_excel
    python manage.py createsuperuser
    python manage.py collectstatic --noinput
    ```
@@ -69,7 +69,7 @@ Puis cliquez sur **Reload** dans l'onglet **Web**.
 
 **Donner l'accès à un producteur** : dans l'administration, ouvrez **Producteurs**, puis un producteur ou **Ajouter**.
 Cochez **ses produits**, choisissez son **responsable**, saisissez son **téléphone** et un **code PIN** de 4 à 6 chiffres, puis enregistrez. Communiquez-lui l'adresse
-du site, son numéro et son code. Les 12 producteurs chargés depuis l'Excel ont un numéro provisoire
+du site, son numéro et son code. Les 12 producteurs chargés depuis les fichiers Excel ont un numéro provisoire
 « A-COMPLETER-… » : remplacez-le par leur vrai numéro et donnez-leur un code PIN.
 
 **Installer sur le téléphone** : le producteur ouvre l'adresse du site dans Chrome, se connecte, puis choisit
@@ -89,14 +89,23 @@ puis remplissez les lignes « Dépenses » et « Ventes » en bas de la page.
 **Prêts** : dans **Prêts**, ajoutez chaque prêt ou avance accordé et chaque remboursement reçu.
 Le tableau de bord calcule le montant restant dû.
 
-**Exporter** : le bouton **Exporter pour Excel** du tableau de bord télécharge le récapitulatif de la semaine.
+**Rapports** (menu **Rapports**, pour l'administrateur et les responsables, chacun sur ses producteurs) :
+choisissez une période (ce mois-ci, le mois dernier, ce trimestre, cette année ou des dates libres) et, si besoin, un secteur.
+Le rapport donne pour chaque producteur la valeur au début et à la fin de la période, l'évolution, les dépenses, les ventes,
+le résultat net et les prêts, avec la courbe semaine par semaine et les dépenses par catégorie. Ensuite :
+- **Version imprimable / PDF** : une page A4 avec en plus le détail produit par produit de chaque producteur.
+  Bouton « Imprimer ou enregistrer en PDF », puis choisissez « Enregistrer au format PDF » comme imprimante.
+- **Télécharger le fichier Excel** : un classeur dans l'esprit du fichier CIAF. Il contient un récapitulatif, une feuille
+  par producteur (semaine par semaine), et les feuilles Dépenses, Ventes, Prêts et Bilan financier, avec des formules.
+
+Le tableau de bord garde l'export CSV de la semaine et un lien direct vers le rapport imprimable de la semaine.
 
 ## Développement local
 ```bash
 pip install -r requirements.txt
-python manage.py migrate && python manage.py charger_semaine_initiale && python manage.py createsuperuser
+python manage.py migrate && python manage.py charger_fiches_excel && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 20 tests
+python manage.py test producteurs   # 25 tests
 ```
 
 ## À venir

@@ -1,0 +1,31 @@
+{% load static suivi %}<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rapport CIAF — {{ titre }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="{% static 'css/app.css' %}">
+<link rel="stylesheet" href="{% static 'css/impression.css' %}">
+</head>
+<body class="imprimable">
+<div class="barre-impression">
+  <a class="btn" href="{% url 'rapport' %}?{{ requete }}">‹ Retour</a>
+  <button class="btn primary" type="button" onclick="window.print()">Imprimer ou enregistrer en PDF</button>
+  <span class="muted small">Dans la fenêtre d'impression, choisissez « Enregistrer au format PDF » comme imprimante.</span>
+</div>
+<main class="page">
+  <header class="entete-rapport">
+    <div>
+      <p class="surtitre">CIAF · Suivi des producteurs</p>
+      <h1>Rapport de situation — {{ titre }}</h1>
+      <p class="muted">Semaines commençant du {{ debut|date:"j F Y" }} au {{ fin|date:"j F Y" }}{% if secteur %} · Secteur : {{ secteur.nom }}{% endif %}</p>
+    </div>
+    <p class="muted small">Établi le {{ genere_le|date:"j F Y à H:i" }}<br>par {{ auteur }}</p>
+  </header>
+  {% with detail=True %}{% include "gestion/_rapport_contenu.html" %}{% endwith %}
+  <footer class="pied-rapport muted small">Rapport généré par l'application de suivi des producteurs du CIAF. Montants en F CFA.</footer>
+</main>
+</body>
+</html>

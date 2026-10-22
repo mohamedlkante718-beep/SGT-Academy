@@ -43,10 +43,8 @@
 <div class="kpis">
   <div class="kpi"><span class="label">Valeur actuelle</span><span class="val">{{ fiche.total_valeurs|nombre }} <small>F CFA</small></span>{% pastille evo_total " F" %}</div>
   <div class="kpi"><span class="label">Valeur précédente</span><span class="val">{% if precedente %}{{ precedente.total_valeurs|nombre }}{% else %}—{% endif %} <small>F CFA</small></span></div>
-  {% if est_admin %}
   <div class="kpi"><span class="label">Résultat net</span><span class="val {% if fiche.resultat_net < 0 %}neg{% endif %}">{{ fiche.resultat_net|nombre }} <small>F CFA</small></span><span class="muted small">Ventes {{ fiche.total_ventes|nombre }} − dépenses {{ fiche.total_depenses|nombre }}</span></div>
   <div class="kpi"><span class="label">Prêts en cours</span><span class="val">{{ prets_en_cours|nombre }} <small>F CFA</small></span></div>
-  {% endif %}
 </div>
 <div class="grid2">
   <section class="section"><h2>Quantités</h2><div class="tablebox"><table>
@@ -61,26 +59,22 @@
 </div>
 <section class="section"><h2>Observations du producteur</h2><p>{{ fiche.observations|default:"—"|linebreaksbr }}</p></section>
 
-{% if est_admin %}
 <section class="section"><h2>A. Dépenses · {{ fiche.total_depenses|nombre }} F</h2>
   {% if fiche.depenses.all %}<div class="tablebox"><table><thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th class="num">Quantité</th><th class="num">Prix unitaire</th><th class="num">Montant</th><th>Paiement</th></tr></thead><tbody>
   {% for d in fiche.depenses.all %}<tr><td>{{ d.date|date:"d/m/Y" }}</td><td>{{ d.get_categorie_display }}</td><td class="texte">{{ d.description }}</td><td class="num">{{ d.quantite|nombre }}</td><td class="num">{{ d.prix_unitaire|nombre }}</td><td class="num">{{ d.montant|nombre }}</td><td>{{ d.get_mode_paiement_display }}</td></tr>{% endfor %}
-  </tbody></table></div>{% else %}<p class="muted small">Aucune dépense saisie. <a href="{{ admin_url }}">Saisir les dépenses</a></p>{% endif %}
+  </tbody></table></div>{% else %}<p class="muted small">Aucune dépense saisie.{% if est_admin %} <a href="{{ admin_url }}">Saisir les dépenses</a>{% endif %}</p>{% endif %}
 </section>
 <section class="section"><h2>B. Ventes · {{ fiche.total_ventes|nombre }} F</h2>
   {% if fiche.ventes.all %}<div class="tablebox"><table><thead><tr><th>Date</th><th>Catégorie / lot</th><th>Description</th><th>Poids</th><th class="num">Quantité</th><th class="num">Prix unitaire</th><th class="num">Montant</th><th>Paiement</th><th>Client</th></tr></thead><tbody>
   {% for v in fiche.ventes.all %}<tr><td>{{ v.date|date:"d/m/Y" }}</td><td>{{ v.categorie }}</td><td class="texte">{{ v.description }}</td><td>{{ v.poids }}</td><td class="num">{{ v.quantite|nombre }}</td><td class="num">{{ v.prix_unitaire|nombre }}</td><td class="num">{{ v.montant|nombre }}</td><td>{{ v.get_mode_paiement_display }}</td><td class="texte">{{ v.client }}</td></tr>{% endfor %}
-  </tbody></table></div>{% else %}<p class="muted small">Aucune vente saisie. <a href="{{ admin_url }}">Saisir les ventes</a></p>{% endif %}
+  </tbody></table></div>{% else %}<p class="muted small">Aucune vente saisie.{% if est_admin %} <a href="{{ admin_url }}">Saisir les ventes</a>{% endif %}</p>{% endif %}
 </section>
 {% endif %}
-{% endif %}
 
-{% if est_admin %}
 <section class="section"><h2>C. Prêts et remboursements · en cours : {{ prets_en_cours|nombre }} F</h2>
   {% if prets %}<div class="tablebox"><table><thead><tr><th>Date</th><th>Type</th><th>Description</th><th class="num">Montant</th></tr></thead><tbody>
   {% for p in prets %}<tr><td>{{ p.date|date:"d/m/Y" }}</td><td>{{ p.get_type_display }}</td><td class="texte">{{ p.description }}</td><td class="num">{{ p.montant|nombre }}</td></tr>{% endfor %}
   </tbody></table></div>{% else %}<p class="muted small">Aucun prêt enregistré.</p>{% endif %}
-  <p><a href="{% url 'admin:producteurs_pret_add' %}?producteur={{ producteur.pk }}">+ Enregistrer un prêt ou un remboursement</a></p>
+  {% if est_admin %}<p><a href="{% url 'admin:producteurs_pret_add' %}?producteur={{ producteur.pk }}">+ Enregistrer un prêt ou un remboursement</a></p>{% endif %}
 </section>
-{% endif %}
 {% endblock %}

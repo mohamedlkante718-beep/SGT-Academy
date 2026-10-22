@@ -45,17 +45,20 @@ class CalculsTests(TestCase):
         self.assertFalse(produit("Mortalités cailleteaux").valoriser)
         self.assertFalse(produit("Ovins & caprins").compter)
 
-    def test_chargement_initial(self):
-        call_command("charger_semaine_initiale", verbosity=0)
+    def test_chargement_des_fiches_excel(self):
+        call_command("charger_fiches_excel", verbosity=0)
         self.assertEqual(Producteur.objects.count(), 12)
-        total = sum(f.total_valeurs for f in Fiche.objects.filter(semaine=S1))
-        self.assertEqual(total, 6_430_000)
+        totaux = {s: sum(f.total_valeurs for f in Fiche.objects.filter(semaine=s))
+                  for s in (date(2026, 10, 1), date(2026, 10, 8), S1)}
+        self.assertEqual(totaux, {date(2026, 10, 1): 6_289_600, date(2026, 10, 8): 6_152_600, S1: 6_430_000})
+        self.assertEqual(sum(d.montant for d in Depense.objects.all()), 278_000 + 150_000)
         alpha = Producteur.objects.get(nom="Alpha GANO")
-        self.assertIn(produit("Taureau"), alpha.produits.all())
-        self.assertEqual(alpha.produits.count(), 14)  # 13 effectifs + « Ovins & caprins »
+        self.assertIn(produit("Nouvelles éclosions pintadeaux"), alpha.produits.all())
+        self.assertFalse(produit("Nouvelles éclosions pintadeaux").valoriser)
         self.assertFalse(Fiche.objects.exclude(statut=Fiche.VALIDEE).exists())
-        call_command("charger_semaine_initiale", verbosity=0)  # relancer ne crée pas de doublon
-        self.assertEqual(Fiche.objects.count(), 12)
+        self.assertEqual(Fiche.objects.count(), 34)  # Thara KANOUTE n'a de fiche que pour la 3e semaine
+        call_command("charger_fiches_excel", verbosity=0)  # relancer ne crée pas de doublon
+        self.assertEqual(Fiche.objects.count(), 34)
 
 
 class SaisieMobileTests(TestCase):
@@ -128,12 +131,12 @@ class ResponsableTests(TestCase):
         Depense.objects.create(fiche=self.fiche, date=S1, categorie="aliments", montant=20000)
         self.client.login(username="76000100", password="1234")
 
-    def test_voit_seulement_ses_producteurs_sans_finances(self):
+    def test_voit_seulement_ses_producteurs_avec_finances(self):
         r = self.client.get(reverse("tableau"))
         self.assertEqual([l["producteur"].nom for l in r.context["lignes"]], ["Siaka KEITA"])
         self.assertEqual(len(r.context["a_valider"]), 1)
-        self.assertNotContains(r, "Dépenses")
-        self.assertNotContains(r, "Prêts")
+        self.assertEqual(r.context["lignes"][0]["depenses"], 20000)
+        self.assertNotContains(r, "Secteurs et produits")  # pas de liens d'administration
         self.assertEqual(self.client.get(reverse("fiche_producteur", args=[self.autre.pk])).status_code, 404)
 
     def test_pas_d_acces_administration(self):
@@ -154,6 +157,64 @@ class ResponsableTests(TestCase):
         self.client.post(url, {"semaine": "2026-10-14", "decision": "corriger", "commentaire": "Il manque les œufs"})
         self.fiche.refresh_from_db()
         self.assertEqual((self.fiche.statut, self.fiche.commentaire), (Fiche.A_CORRIGER, "Il manque les œufs"))
+
+
+class RapportTests(TestCase):
+    def setUp(self):
+        call_command("charger_fiches_excel", verbosity=0)
+        get_user_model().objects.create_superuser("chef", password="secret-123", first_name="Chef")
+        self.client.login(username="chef", password="secret-123")
+        self.octobre = "?periode=libre&debut=2026-10-01&fin=2026-10-31"
+
+    def test_bornes_des_periodes(self):
+        from .rapports import bornes
+        j = date(2026, 10, 22)
+        self.assertEqual(bornes("mois", j), (date(2026, 10, 1), date(2026, 10, 31)))
+        self.assertEqual(bornes("mois_precedent", j), (date(2026, 9, 1), date(2026, 9, 30)))
+        self.assertEqual(bornes("trimestre", j), (date(2026, 10, 1), date(2026, 12, 31)))
+        self.assertEqual(bornes("libre", j, date(2026, 10, 20), date(2026, 10, 1)), (date(2026, 10, 1), date(2026, 10, 20)))
+
+    def test_rapport_du_mois(self):
+        r = self.client.get(reverse("rapport") + self.octobre)
+        self.assertEqual(r.status_code, 200)
+        tot = r.context["tot"]
+        self.assertEqual((tot["nb"], tot["depenses"], tot["ventes"]), (34, 428_000, 198_500))
+        alpha = next(l for l in r.context["lignes"] if l["producteur"].nom == "Alpha GANO")
+        self.assertEqual((alpha["debut"], alpha["fin"]), (3_556_600, 3_705_500))  # 1er octobre → 14 octobre
+        self.assertEqual(alpha["evo"]["ecart"], 148_900)
+        self.assertEqual(len(r.context["courbe"]["points"]), 3)
+        # Thara KANOUTE n'a pas de fiche avant le 14 : pas de valeur de départ dans le total.
+        self.assertEqual((tot["debut"], tot["fin"]), (6_289_600, 6_430_000))
+
+    def test_rapport_imprimable(self):
+        r = self.client.get(reverse("rapport_imprimable") + self.octobre)
+        self.assertContains(r, "Rapport de situation — Octobre 2026")
+        self.assertContains(r, "Imprimer ou enregistrer en PDF")
+        self.assertContains(r, "Détail par producteur")
+
+    def test_export_excel(self):
+        from io import BytesIO
+
+        from openpyxl import load_workbook
+        r = self.client.get(reverse("rapport_excel") + self.octobre)
+        self.assertEqual(r["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        wb = load_workbook(BytesIO(r.content))
+        self.assertEqual(wb.sheetnames[0], "Récapitulatif")
+        self.assertIn("Alpha GANO", wb.sheetnames)
+        self.assertEqual(wb.sheetnames[-4:], ["Dépenses", "Ventes", "Prêts", "Bilan financier"])
+        self.assertEqual(wb["Dépenses"].max_row, 5 + 10 + 1)  # en-tête, 10 dépenses, total
+        self.assertEqual(wb["Prêts"]["A6"].value, "Aucune opération sur la période.")
+        recap = wb["Récapitulatif"]
+        self.assertEqual((recap["A6"].value, recap["E6"].value, recap["F6"].value), ("Alpha GANO", 3_556_600, 3_705_500))
+        self.assertEqual(recap["G6"].value, '=IF(OR(E6="",F6=""),"",F6-E6)')
+
+    def test_responsable_rapport_limite_a_ses_producteurs(self):
+        r = Responsable.objects.create(nom="M. Traoré", telephone="76000100", utilisateur=compte("76000100"))
+        Producteur.objects.filter(nom="Alpha GANO").update(responsable=r)
+        self.client.login(username="76000100", password="1234")
+        rep = self.client.get(reverse("rapport") + self.octobre)
+        self.assertEqual([l["producteur"].nom for l in rep.context["lignes"]], ["Alpha GANO"])
+        self.assertEqual(rep.context["tot"]["depenses"], 24_500 + 75_000)
 
 
 class AdministrateurTests(TestCase):

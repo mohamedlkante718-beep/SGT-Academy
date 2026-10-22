@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
+from . import rapports
 from .forms import ConnexionForm, ValidationForm
 from .models import Fiche, LigneEffectif, LigneValeur, Producteur, Responsable, Secteur
 from .services import cle, comparer_lignes, debut_semaine, evolution, recapitulatif
@@ -203,17 +204,14 @@ def tableau(request):
         rep["Content-Disposition"] = f'attachment; filename="recapitulatif-ciaf-{semaine}.csv"'
         rep.write("﻿")
         w = csv.writer(rep, delimiter=";")
-        entete = ["Producteur", "Statut", "Valeur précédente", "Valeur actuelle", "Évolution"]
-        if request.est_admin:
-            entete += ["Dépenses", "Ventes", "Résultat net", "Prêts en cours"]
-        w.writerow(entete)
+        w.writerow(["Producteur", "Statut", "Valeur précédente", "Valeur actuelle", "Évolution", "Dépenses", "Ventes",
+                    "Résultat net", "Prêts en cours"])
         vide = lambda v: "" if v is None else v
         for l in lignes:
             ecart = l["evo"]["ecart"] if l["evo"] else None
             ligne = [l["producteur"].nom, l["fiche"].get_statut_display() if l["fiche"] else "Non reçue",
-                     vide(l["precedent"]), vide(l["actuel"]), vide(ecart)]
-            if request.est_admin:
-                ligne += [vide(l["depenses"]), vide(l["ventes"]), vide(l["resultat"]), l["prets"]]
+                     vide(l["precedent"]), vide(l["actuel"]), vide(ecart),
+                     vide(l["depenses"]), vide(l["ventes"]), vide(l["resultat"]), l["prets"]]
             w.writerow(ligne)
         return rep
 
@@ -241,7 +239,7 @@ def _courbe(points):
     """Coordonnées SVG de la courbe ; un seul point s'il n'y a qu'une semaine."""
     if len(points) < 2:
         return {"seul": points[0] if points else None}
-    W, H, L, R, T, B = 760, 240, 70, 20, 16, 34
+    W, H, L, R, T, B = 760, 250, 70, 24, 30, 34
     maxi = max(p["total"] for p in points) * 1.1 or 1
     x = lambda i: L + i * (W - L - R) / (len(points) - 1)
     y = lambda v: T + (H - T - B) * (1 - v / maxi)
@@ -280,8 +278,7 @@ def fiche_producteur(request, pk):
            "semaine": semaine, "fiche": fiche, "precedente": precedente, "validation": validation,
            "est_admin": request.est_admin,
            "tous": request.producteurs_visibles}
-    if request.est_admin:
-        ctx.update({"prets": producteur.prets.all()[:20], "prets_en_cours": producteur.prets_en_cours()})
+    ctx.update({"prets": producteur.prets.all()[:20], "prets_en_cours": producteur.prets_en_cours()})
     if fiche:
         ctx.update({
             "effectifs": comparer_lignes(fiche.effectifs.all(), precedente.effectifs.all() if precedente else None, "quantite"),
@@ -290,6 +287,53 @@ def fiche_producteur(request, pk):
             "admin_url": reverse("admin:producteurs_fiche_change", args=[fiche.pk]),
         })
     return render(request, "gestion/fiche.html", ctx)
+
+
+# ---------------------------------------------------------------- rapports par période
+
+def _rapport(request):
+    """Lit la période et le secteur demandés, puis calcule le rapport sur les producteurs visibles."""
+    choix = request.GET.get("periode") or "mois"
+    try:
+        d = date.fromisoformat(request.GET.get("debut", ""))
+        f = date.fromisoformat(request.GET.get("fin", ""))
+    except ValueError:
+        d = f = None
+    if choix == "libre" and not (d and f):
+        choix = "mois"
+    debut, fin = rapports.bornes(choix, debut=d, fin=f)
+    producteurs = request.producteurs_visibles.filter(actif=True)
+    secteurs = Secteur.objects.filter(actif=True, produits__producteurs__in=producteurs).distinct()
+    secteur = secteurs.filter(pk=request.GET.get("secteur")).first() if (request.GET.get("secteur") or "").isdigit() else None
+    if secteur:
+        producteurs = producteurs.filter(produits__secteur=secteur).distinct()
+    r = rapports.rapport_periode(debut, fin, producteurs)
+    r.update({"choix": choix, "periodes": rapports.PERIODES, "secteurs": secteurs, "secteur": secteur,
+              "courbe": _courbe(r["courbe_points"]), "est_admin": request.est_admin, "onglet": "rapport",
+              "requete": request.GET.urlencode()})
+    return r
+
+
+@suivi_requis
+def rapport(request):
+    return render(request, "gestion/rapport.html", _rapport(request))
+
+
+@suivi_requis
+def rapport_imprimable(request):
+    r = _rapport(request)
+    r["genere_le"] = timezone.localtime()
+    r["auteur"] = request.user.first_name or request.user.username
+    return render(request, "gestion/rapport_imprimable.html", r)
+
+
+@suivi_requis
+def rapport_excel(request):
+    r = _rapport(request)
+    contenu = rapports.classeur_excel(r, genere_par=request.user.first_name or request.user.username)
+    rep = HttpResponse(contenu, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    rep["Content-Disposition"] = f'attachment; filename="rapport-ciaf-{r["debut"]}-au-{r["fin"]}.xlsx"'
+    return rep
 
 
 # ---------------------------------------------------------------- application installable

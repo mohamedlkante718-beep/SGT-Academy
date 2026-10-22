@@ -1,0 +1,36 @@
+{% extends "gestion/base_gestion.html" %}
+{% block titre %}Rapports{% endblock %}
+{% block contenu %}
+<section class="section">
+  <h1>Rapport : {{ titre }}</h1>
+  <form method="get" class="row" id="filtres">
+    <div class="field"><label for="periode">Période</label>
+      <select id="periode" name="periode">
+        {% for code, nom in periodes %}<option value="{{ code }}" {% if code == choix %}selected{% endif %}>{{ nom }}</option>{% endfor %}
+      </select></div>
+    <div class="field"><label for="debut">Du</label><input type="date" id="debut" name="debut" value="{{ debut|date:'Y-m-d' }}"></div>
+    <div class="field"><label for="fin">Au</label><input type="date" id="fin" name="fin" value="{{ fin|date:'Y-m-d' }}"></div>
+    {% if secteurs|length > 1 %}<div class="field"><label for="secteur">Secteur</label>
+      <select id="secteur" name="secteur"><option value="">Tous les secteurs</option>
+        {% for s in secteurs %}<option value="{{ s.pk }}" {% if s == secteur %}selected{% endif %}>{{ s.nom }}</option>{% endfor %}
+      </select></div>{% endif %}
+    <button class="btn primary" type="submit">Afficher</button>
+  </form>
+  <div class="row">
+    <a class="btn" href="{% url 'rapport_imprimable' %}?{{ requete }}">Version imprimable / PDF</a>
+    <a class="btn" href="{% url 'rapport_excel' %}?{{ requete }}">Télécharger le fichier Excel</a>
+  </div>
+  <p class="muted small">Semaines commençant du {{ debut|date:"j F Y" }} au {{ fin|date:"j F Y" }}.</p>
+</section>
+{% include "gestion/_rapport_contenu.html" %}
+{% endblock %}
+{% block scripts %}
+<script>
+/* Changer une date passe en « dates libres » ; choisir une période prédéfinie envoie le formulaire. */
+(function () {
+  var f = document.getElementById("filtres"), p = document.getElementById("periode");
+  ["debut", "fin"].forEach(function (id) { document.getElementById(id).addEventListener("change", function () { p.value = "libre"; }); });
+  p.addEventListener("change", function () { if (p.value !== "libre") f.submit(); });
+})();
+</script>
+{% endblock %}

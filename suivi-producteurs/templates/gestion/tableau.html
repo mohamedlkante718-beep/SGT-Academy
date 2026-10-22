@@ -1,5 +1,5 @@
 {% extends "gestion/base_gestion.html" %}
-{% load suivi %}
+{% load l10n suivi %}
 {% block titre %}Tableau de bord{% endblock %}
 {% block contenu %}
 {% if vide %}
@@ -26,24 +26,23 @@
           <option value="">Tous les secteurs</option>
           {% for s in secteurs %}<option value="{{ s.pk }}" {% if s == secteur %}selected{% endif %}>{{ s.nom }}</option>{% endfor %}
         </select></div>
-      <a class="btn" href="?semaine={{ semaine|date:'Y-m-d' }}{% if secteur %}&amp;secteur={{ secteur.pk }}{% endif %}&amp;format=csv">Exporter pour Excel</a>
+      <a class="btn" href="?semaine={{ semaine|date:'Y-m-d' }}{% if secteur %}&amp;secteur={{ secteur.pk }}{% endif %}&amp;format=csv">Exporter la semaine (CSV)</a>
+      <a class="btn" href="{% url 'rapport_imprimable' %}?periode=libre&amp;debut={{ semaine|date:'Y-m-d' }}&amp;fin={{ semaine|date:'Y-m-d' }}{% if secteur %}&amp;secteur={{ secteur.pk }}{% endif %}">Rapport imprimable</a>
     </form>
   </div>
   <p class="muted small">{{ nb_saisies }} fiche{{ nb_saisies|pluralize }} reçue{{ nb_saisies|pluralize }} sur {{ lignes|length }} producteurs{% if secteur %} du secteur {{ secteur.nom }}{% endif %}. La valeur précédente est celle de la dernière fiche avant cette semaine.</p>
   <div class="kpis">
     <div class="kpi"><span class="label">Valeur totale des productions</span><span class="val">{{ tot.actuel|nombre }} <small>F CFA</small></span>{% pastille tot.evo " F" %}</div>
-    {% if est_admin %}
     <div class="kpi"><span class="label">Dépenses de la semaine</span><span class="val">{{ tot.depenses|nombre }} <small>F CFA</small></span></div>
     <div class="kpi"><span class="label">Ventes de la semaine</span><span class="val">{{ tot.ventes|nombre }} <small>F CFA</small></span></div>
     <div class="kpi"><span class="label">Résultat net</span><span class="val {% if tot.resultat < 0 %}neg{% endif %}">{{ tot.resultat|nombre }} <small>F CFA</small></span><span class="muted small">Ventes − dépenses</span></div>
     <div class="kpi"><span class="label">Prêts en cours</span><span class="val">{{ tot.prets|nombre }} <small>F CFA</small></span><span class="muted small">Prêts accordés − remboursements</span></div>
-    {% endif %}
   </div>
 </section>
 <section class="section">
   <h2>Récapitulatif par producteur</h2>
   <div class="tablebox"><table>
-    <thead><tr><th>Producteur</th><th>Fiche</th><th class="num">Valeur précédente</th><th class="num">Valeur actuelle</th><th>Évolution</th>{% if est_admin %}<th class="num">Dépenses</th><th class="num">Ventes</th><th class="num">Résultat net</th><th class="num">Prêts en cours</th>{% endif %}</tr></thead>
+    <thead><tr><th>Producteur</th><th>Fiche</th><th class="num">Valeur précédente</th><th class="num">Valeur actuelle</th><th>Évolution</th><th class="num">Dépenses</th><th class="num">Ventes</th><th class="num">Résultat net</th><th class="num">Prêts en cours</th></tr></thead>
     <tbody>
     {% for l in lignes %}
       <tr>
@@ -53,16 +52,14 @@
         <td class="num">{{ l.precedent|nombre }}</td>
         <td class="num">{{ l.actuel|nombre }}</td>
         <td>{% pastille l.evo " F" %}</td>
-        {% if est_admin %}
         <td class="num">{{ l.depenses|nombre }}</td>
         <td class="num">{{ l.ventes|nombre }}</td>
         <td class="num {% if l.resultat < 0 %}neg{% endif %}">{{ l.resultat|nombre }}</td>
         <td class="num">{{ l.prets|nombre }}</td>
-        {% endif %}
       </tr>
     {% endfor %}
     </tbody>
-    <tfoot><tr><td>Total</td><td></td><td class="num">{% if tot.a_precedent %}{{ tot.precedent|nombre }}{% else %}—{% endif %}</td><td class="num">{{ tot.actuel|nombre }}</td><td>{% pastille tot.evo " F" %}</td>{% if est_admin %}<td class="num">{{ tot.depenses|nombre }}</td><td class="num">{{ tot.ventes|nombre }}</td><td class="num">{{ tot.resultat|nombre }}</td><td class="num">{{ tot.prets|nombre }}</td>{% endif %}</tr></tfoot>
+    <tfoot><tr><td>Total</td><td></td><td class="num">{% if tot.a_precedent %}{{ tot.precedent|nombre }}{% else %}—{% endif %}</td><td class="num">{{ tot.actuel|nombre }}</td><td>{% pastille tot.evo " F" %}</td><td class="num">{{ tot.depenses|nombre }}</td><td class="num">{{ tot.ventes|nombre }}</td><td class="num">{{ tot.resultat|nombre }}</td><td class="num">{{ tot.prets|nombre }}</td></tr></tfoot>
   </table></div>
   <p class="muted small">Montants en F CFA. Cliquez sur un nom pour voir sa fiche détaillée{% if not est_admin %} et la valider{% endif %}.{% if est_admin %} Les dépenses et ventes se saisissent dans « Fiches, dépenses et ventes », les prêts dans « Prêts ».{% endif %}</p>
 </section>
@@ -70,13 +67,13 @@
   <h2>Évolution de la valeur totale, semaine par semaine</h2>
   <div class="chart">
   {% if courbe.points %}
-    <svg viewBox="0 0 {{ courbe.W }} {{ courbe.H }}" role="img" aria-label="Valeur totale des productions par semaine">
-      {% for g in courbe.graduations %}<line x1="{{ courbe.L }}" x2="{{ courbe.R }}" y1="{{ g.y }}" y2="{{ g.y }}" stroke="var(--line)"/><text x="{{ courbe.L|add:'-8' }}" y="{{ g.y|add:'4' }}" text-anchor="end">{{ g.v|nombre }} k</text>{% endfor %}
+    {% localize off %}    <svg viewBox="0 0 {{ courbe.W }} {{ courbe.H }}" role="img" aria-label="Valeur totale des productions par semaine">
+      {% for g in courbe.graduations %}<line x1="{{ courbe.L }}" x2="{{ courbe.R }}" y1="{{ g.y }}" y2="{{ g.y }}" stroke="var(--line)"/><text x="{{ courbe.L|add:'-8' }}" y="{{ g.y|add:'4' }}" text-anchor="end">{% localize on %}{{ g.v|nombre }}{% endlocalize %} k</text>{% endfor %}
       <path d="{{ courbe.aire }}" fill="var(--accent-soft)"/>
       <path d="{{ courbe.chemin }}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
-      {% for p in courbe.points %}<circle cx="{{ p.x }}" cy="{{ p.y }}" r="{% if forloop.last %}5{% else %}3{% endif %}" fill="var(--accent)"><title>Semaine du {{ p.semaine|date:"j M" }} : {{ p.total|nombre }} F</title></circle>
+      {% for p in courbe.points %}<circle cx="{{ p.x }}" cy="{{ p.y }}" r="{% if forloop.last %}5{% else %}3{% endif %}" fill="var(--accent)"><title>Semaine du {{ p.semaine|date:"j M" }} : {% localize on %}{{ p.total|nombre }}{% endlocalize %} F</title></circle>
       <text x="{{ p.x }}" y="{{ courbe.H|add:'-10' }}" text-anchor="middle">{{ p.semaine|date:"j M" }}</text>{% endfor %}
-    </svg>
+    </svg>{% endlocalize %}
   {% else %}
     <p class="muted">Une seule semaine enregistrée ({{ courbe.seul.total|nombre }} F CFA). La courbe apparaîtra dès la deuxième semaine.</p>
   {% endif %}
