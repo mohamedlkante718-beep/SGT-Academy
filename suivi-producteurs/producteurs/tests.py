@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
-from .models import Depense, Fiche, LigneEffectif, LigneValeur, Pret, Producteur
+from .models import Depense, Fiche, LigneEffectif, LigneValeur, Pret, Producteur, Produit, Secteur
 from .services import debut_semaine, evolution
 
 S1 = date(2026, 10, 14)
@@ -34,6 +34,7 @@ class CalculsTests(TestCase):
     def test_chargement_initial(self):
         call_command("charger_semaine_initiale", verbosity=0)
         self.assertEqual(Producteur.objects.count(), 12)
+        self.assertEqual(Producteur.objects.filter(secteurs__nom="Élevage").count(), 12)
         total = sum(f.total_valeurs for f in Fiche.objects.filter(semaine=S1))
         self.assertEqual(total, 6_430_000)
         call_command("charger_semaine_initiale", verbosity=0)  # relancer ne crée pas de doublon
@@ -82,6 +83,19 @@ class SaisieMobileTests(TestCase):
         # La fiche est rattachée au producteur connecté, jamais à un autre.
         self.assertFalse(Fiche.objects.filter(producteur=self.autre).exists())
 
+    def test_liste_des_produits_de_ses_secteurs(self):
+        peche = Secteur.objects.create(nom="Pisciculture", ordre=3)
+        Produit.objects.create(secteur=peche, nom="Tilapias", unite="poissons")
+        Produit.objects.create(secteur=Secteur.objects.get(nom="Agriculture"), nom="Maïs", unite="kg")
+        self.p.secteurs.add(Secteur.objects.get(nom="Élevage"), peche)
+        self.client.login(username="76000001", password="1234")
+        r = self.client.get(reverse("saisie_semaine", args=["2026-10-21"]))
+        self.assertContains(r, '<optgroup label="Pisciculture">')
+        self.assertContains(r, 'data-unite="poissons">Tilapias</option>')
+        self.assertContains(r, "Cailleteaux</option>")  # produits Élevage créés par la migration
+        self.assertNotContains(r, "Maïs")  # pas un de ses secteurs
+        self.assertContains(r, "Nombre (têtes)")  # unité du produit « Poulets »
+
     def test_formulaire_mobile_sans_finances(self):
         self.client.login(username="76000001", password="1234")
         r = self.client.get(reverse("saisie_semaine", args=["2026-10-21"]))
@@ -113,6 +127,16 @@ class GestionTests(TestCase):
         self.assertEqual(ligne["prets"], 40000)
         self.assertContains(r, "▲ +50 000 F")
 
+    def test_filtre_par_secteur(self):
+        peche = Secteur.objects.create(nom="Pisciculture")
+        autre = creer_producteur("Pêcheur", "76000009")
+        autre.secteurs.add(peche)
+        self.p.secteurs.add(Secteur.objects.get(nom="Élevage"))
+        r = self.client.get(reverse("tableau") + f"?secteur={peche.pk}")
+        self.assertEqual([l["producteur"].nom for l in r.context["lignes"]], ["Pêcheur"])
+        r = self.client.get(reverse("tableau"))
+        self.assertEqual(len(r.context["lignes"]), 2)
+
     def test_export_csv(self):
         r = self.client.get(reverse("tableau") + "?format=csv")
         self.assertEqual(r["Content-Type"], "text/csv; charset=utf-8")
@@ -125,12 +149,13 @@ class GestionTests(TestCase):
 
     def test_admin_cree_producteur_avec_pin(self):
         r = self.client.post(reverse("admin:producteurs_producteur_add"), {
-            "nom": "Siaka KEITA", "volet": "elevage", "actif": "on", "ordre": "3",
+            "nom": "Siaka KEITA", "secteurs": [Secteur.objects.get(nom="Élevage").pk], "actif": "on", "ordre": "3",
             "telephone": "+223 66 00 00 03", "code_pin": "4321",
             "prets-TOTAL_FORMS": "0", "prets-INITIAL_FORMS": "0",
         })
         self.assertEqual(r.status_code, 302)
         p = Producteur.objects.get(nom="Siaka KEITA")
         self.assertEqual(p.telephone, "+22366000003")
+        self.assertEqual([s.nom for s in p.secteurs.all()], ["Élevage"])
         self.client.logout()
         self.assertTrue(self.client.login(username="+22366000003", password="4321"))

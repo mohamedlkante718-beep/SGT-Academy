@@ -1,5 +1,5 @@
 /* Service worker minimal : rend l'application installable et garde le style hors connexion. */
-const CACHE = "suivi-ciaf-v1";
+const CACHE = "suivi-ciaf-v2";
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/static/css/app.css", "/static/js/saisie.js"])).catch(() => {}));
   self.skipWaiting();

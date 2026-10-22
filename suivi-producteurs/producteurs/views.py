@@ -12,7 +12,7 @@ from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
 from .forms import ConnexionForm, FicheForm, formsets
-from .models import Fiche, Producteur
+from .models import Fiche, Producteur, Secteur
 from .services import comparer_lignes, debut_semaine, evolution, recapitulatif
 
 
@@ -96,6 +96,11 @@ def saisie(request, semaine=None):
         messages.success(request, f"Fiche de la semaine du {fiche.semaine:%d/%m} enregistrée.")
         return redirect("accueil")
 
+    # Produits proposés, regroupés par secteur, pour la liste « Ajouter un produit ».
+    groupes, unites = {}, {}
+    for pr in producteur.produits_proposes():
+        groupes.setdefault(pr.secteur.nom, []).append(pr)
+        unites[pr.nom] = pr.unite
     prec_eff = {l.libelle: l.quantite for l in precedente.effectifs.all()} if precedente else {}
     prec_val = {l.libelle: l.montant for l in precedente.valeurs.all()} if precedente else {}
     return render(request, "mobile/saisie.html", {
@@ -109,6 +114,8 @@ def saisie(request, semaine=None):
         "prec_val": prec_val,
         "form": form,
         "jeux": jeux,
+        "groupes": groupes,
+        "unites": unites,
         "semaine_precedente": semaine - timedelta(days=7),
         "semaine_suivante": semaine + timedelta(days=7) if semaine < debut_semaine() else None,
     })
@@ -127,7 +134,11 @@ def tableau(request):
         return render(request, "gestion/tableau.html", {"vide": True})
     choix = request.GET.get("semaine")
     semaine = date.fromisoformat(choix) if choix and choix in {s.isoformat() for s in semaines} else semaines[0]
-    producteurs = Producteur.objects.filter(actif=True)
+    producteurs = Producteur.objects.filter(actif=True).prefetch_related("secteurs")
+    secteurs = Secteur.objects.filter(actif=True)
+    secteur = secteurs.filter(pk=request.GET.get("secteur")).first() if (request.GET.get("secteur") or "").isdigit() else None
+    if secteur:
+        producteurs = producteurs.filter(secteurs=secteur)
     lignes, tot = recapitulatif(semaine, producteurs)
 
     if request.GET.get("format") == "csv":
@@ -149,7 +160,7 @@ def tableau(request):
     # Courbe de la valeur totale, semaine par semaine (12 dernières semaines).
     points = []
     for s in reversed(semaines[:12]):
-        total = sum(f.total_valeurs for f in Fiche.objects.filter(semaine=s).prefetch_related("valeurs"))
+        total = sum(f.total_valeurs for f in Fiche.objects.filter(semaine=s, producteur__in=producteurs).prefetch_related("valeurs"))
         points.append({"semaine": s, "total": total})
     return render(request, "gestion/tableau.html", {
         "semaine": semaine,
@@ -160,6 +171,8 @@ def tableau(request):
         "nb_saisies": sum(1 for l in lignes if l["fiche"]),
         "courbe": _courbe(points),
         "onglet": "tableau",
+        "secteurs": secteurs,
+        "secteur": secteur,
     })
 
 

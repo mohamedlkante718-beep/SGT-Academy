@@ -41,7 +41,8 @@ class ProducteurAdminForm(forms.ModelForm):
 
     class Meta:
         model = Producteur
-        fields = ["nom", "telephone", "volet", "actif", "ordre"]
+        fields = ["nom", "telephone", "secteurs", "actif", "ordre"]
+        widgets = {"secteurs": forms.CheckboxSelectMultiple}
 
     def clean_telephone(self):
         tel = normaliser_telephone(self.cleaned_data["telephone"])

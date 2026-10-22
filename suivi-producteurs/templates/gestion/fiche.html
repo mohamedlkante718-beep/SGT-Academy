@@ -4,7 +4,7 @@
 {% block contenu %}
 <section class="section">
   <div class="row between">
-    <h1>{{ producteur.nom }} <span class="tag {% if producteur.volet == 'agriculture' %}agri{% endif %}">{{ producteur.get_volet_display }}</span></h1>
+    <h1>{{ producteur.nom }} {% for s in producteur.secteurs.all %}<span class="tag">{{ s.nom }}</span> {% endfor %}</h1>
     <form method="get" class="row" id="choix">
       <div class="field"><label for="p">Producteur</label>
         <select id="p" onchange="location.href='{% url 'fiche_producteur' 0 %}'.replace('/0/', '/' + this.value + '/')">

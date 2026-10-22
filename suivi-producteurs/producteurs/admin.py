@@ -3,12 +3,32 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 
 from .forms import ProducteurAdminForm
-from .models import Depense, Fiche, LigneEffectif, LigneValeur, Pret, Producteur, Vente
+from .models import Depense, Fiche, LigneEffectif, LigneValeur, Pret, Producteur, Produit, Secteur, Vente
 
 admin.site.site_header = "Suivi des producteurs — CIAF"
 admin.site.site_title = "Suivi CIAF"
 admin.site.index_title = "Administration"
 admin.site.site_url = "/gestion/"
+
+
+class ProduitInline(admin.TabularInline):
+    model = Produit
+    extra = 3
+
+
+@admin.register(Secteur)
+class SecteurAdmin(admin.ModelAdmin):
+    list_display = ["nom", "nombre_produits", "nombre_producteurs", "actif", "ordre"]
+    list_editable = ["ordre"]
+    inlines = [ProduitInline]
+
+    @admin.display(description="produits")
+    def nombre_produits(self, obj):
+        return obj.produits.filter(actif=True).count()
+
+    @admin.display(description="producteurs")
+    def nombre_producteurs(self, obj):
+        return obj.producteurs.count()
 
 
 class PretInline(admin.TabularInline):
@@ -19,16 +39,23 @@ class PretInline(admin.TabularInline):
 @admin.register(Producteur)
 class ProducteurAdmin(admin.ModelAdmin):
     form = ProducteurAdminForm
-    list_display = ["nom", "telephone", "volet", "actif", "ordre", "nombre_fiches", "derniere_fiche"]
-    list_filter = ["volet", "actif"]
+    list_display = ["nom", "telephone", "liste_secteurs", "actif", "ordre", "nombre_fiches", "derniere_fiche"]
+    list_filter = ["secteurs", "actif"]
     list_editable = ["ordre"]
     search_fields = ["nom", "telephone"]
     inlines = [PretInline]
     fieldsets = [
-        (None, {"fields": ["nom", "volet", "actif", "ordre"]}),
+        (None, {"fields": ["nom", "secteurs", "actif", "ordre"]}),
         ("Accès au téléphone", {"fields": ["telephone", "code_pin"],
                                 "description": "Le producteur se connecte avec ce numéro et ce code PIN."}),
     ]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("secteurs")
+
+    @admin.display(description="secteurs")
+    def liste_secteurs(self, obj):
+        return ", ".join(s.nom for s in obj.secteurs.all()) or "—"
 
     @admin.display(description="fiches")
     def nombre_fiches(self, obj):
@@ -80,7 +107,7 @@ class VenteInline(admin.TabularInline):
 @admin.register(Fiche)
 class FicheAdmin(admin.ModelAdmin):
     list_display = ["producteur", "semaine", "valeur_totale", "depenses", "ventes", "modifie_le", "saisie_par"]
-    list_filter = ["semaine", "producteur__volet", "producteur"]
+    list_filter = ["semaine", "producteur__secteurs", "producteur"]
     date_hierarchy = "semaine"
     inlines = [EffectifInline, ValeurInline, DepenseInline, VenteInline]
     readonly_fields = ["saisie_par", "modifie_le"]

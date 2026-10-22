@@ -9,6 +9,7 @@
     {% if semaine_suivante %}<a class="btn link" href="{% url 'saisie_semaine' semaine_suivante|date:'Y-m-d' %}">Semaine suivante ›</a>{% endif %}
   </div>
   <h1>Semaine du {{ semaine|date:"j F" }} au {{ fin|date:"j F Y" }}</h1>
+  <p class="muted small">Mes secteurs : {% for s in producteur.secteurs.all %}<span class="tag">{{ s.nom }}</span> {% empty %}aucun{% endfor %}</p>
   <p class="muted">{% if nouvelle %}Nouvelle fiche.{% else %}Fiche déjà enregistrée : vous pouvez la corriger.{% endif %}
     {% if precedente %}Les chiffres de la semaine du {{ precedente.semaine|date:"j F" }} sont rappelés sous chaque ligne.{% endif %}</p>
 </section>
@@ -22,8 +23,8 @@
   {% for nom, jeu in jeux.items %}
   <div class="card" data-jeu="{{ nom }}">
     {% if nom == "effectifs" %}
-      <h2>Mes animaux (effectifs)</h2>
-      <p class="muted small">Nombre d'animaux, d'œufs, de mortalités…</p>
+      <h2>Mes quantités</h2>
+      <p class="muted small">Nombre d'animaux, d'œufs, de mortalités, kilos récoltés…</p>
     {% else %}
       <h2>Valeur de mes produits</h2>
       <p class="muted small">Valeur actuelle estimée, en F CFA.</p>
@@ -35,7 +36,7 @@
         {% for h in f.hidden_fields %}{{ h }}{% endfor %}
         <div class="field"><label for="{{ f.libelle.id_for_label }}">Élément</label>{{ f.libelle }}{{ f.libelle.errors }}</div>
         {% if nom == "effectifs" %}
-          <div class="field"><label for="{{ f.quantite.id_for_label }}">Nombre</label>{{ f.quantite }}{{ f.quantite.errors }}</div>
+          <div class="field"><label for="{{ f.quantite.id_for_label }}">Nombre{% with u=unites|get:f.libelle.value %}{% if u %} ({{ u }}){% endif %}{% endwith %}</label>{{ f.quantite }}{{ f.quantite.errors }}</div>
           <div class="prec">{% with p=prec_eff|get:f.libelle.value %}{% if precedente %}Semaine d'avant : <b>{{ p|nombre }}</b>{% endif %}{% endwith %}
             {% if f.instance.pk %}<label class="suppr">{{ f.DELETE }} supprimer</label>{% endif %}</div>
         {% else %}
@@ -50,11 +51,20 @@
       <div class="ligne">
         {% for h in jeu.empty_form.hidden_fields %}{{ h }}{% endfor %}
         <div class="field"><label>Élément</label>{{ jeu.empty_form.libelle }}</div>
-        {% if nom == "effectifs" %}<div class="field"><label>Nombre</label>{{ jeu.empty_form.quantite }}</div>
+        {% if nom == "effectifs" %}<div class="field"><label data-unite>Nombre</label>{{ jeu.empty_form.quantite }}</div>
         {% else %}<div class="field"><label>Valeur (F)</label>{{ jeu.empty_form.montant }}</div>{% endif %}
       </div>
     </template>
-    <button type="button" class="btn link" data-ajouter>+ Ajouter un élément</button>
+    <div class="field ajout">
+      <label for="ajout-{{ nom }}">+ Ajouter un produit</label>
+      <select id="ajout-{{ nom }}" data-ajouter>
+        <option value="">Choisir dans la liste…</option>
+        {% for secteur, produits in groupes.items %}<optgroup label="{{ secteur }}">
+          {% for p in produits %}<option value="{{ p.nom }}" data-unite="{{ p.unite }}">{{ p.nom }}</option>{% endfor %}
+        </optgroup>{% endfor %}
+        <option value="__autre__">Autre produit (écrire le nom)</option>
+      </select>
+    </div>
   </div>
   {% endfor %}
 

@@ -5,7 +5,13 @@ Application de suivi hebdomadaire des producteurs du CIAF.
 | Qui | Où | Ce qu'il fait |
 |---|---|---|
 | **Administrateur** | Ordinateur, page web `/gestion/` | Voit le tableau de bord : valeur précédente, valeur actuelle, évolution (▲ hausse / ▼ baisse), dépenses, ventes, résultat net, prêts en cours. Il est le seul à pouvoir ajouter des producteurs, leur donner un code PIN, saisir les dépenses, les ventes et les prêts. |
-| **Producteur** | Téléphone (application installable) | Se connecte avec son numéro et son code PIN, et remplit uniquement la fiche de **ses produits** : effectifs, valeur, observations. Il voit les chiffres de sa semaine précédente. Il ne voit ni les autres producteurs ni les finances. |
+| **Producteur** | Téléphone (application installable) | Se connecte avec son numéro et son code PIN, et remplit uniquement la fiche de **ses produits** : quantités, valeur, observations. Il choisit ses produits dans la liste de ses secteurs et voit les chiffres de sa semaine précédente. Il ne voit ni les autres producteurs ni les finances. |
+
+**Secteurs et produits** : l'administrateur crée autant de secteurs qu'il veut (Élevage, Agriculture, Maraîchage,
+Pisciculture, Apiculture…) et, dans chaque secteur, la liste des produits avec leur unité (têtes, œufs, kg, sacs…).
+Chaque producteur est rattaché à un ou plusieurs secteurs : sur son téléphone, il ne voit que les produits de ses secteurs.
+Le secteur Élevage est créé automatiquement avec les 28 produits de la fiche Excel. Le secteur Agriculture est créé vide,
+en attendant la fiche de M. Traoré.
 
 La semaine de suivi va du **mercredi au mardi**, comme la fiche Excel de référence (du 14 au 20 octobre 2026).
 On peut changer ce jour avec la variable `SEMAINE_JOUR_DEBUT`, où 0 = lundi.
@@ -63,6 +69,11 @@ du site, son numéro et son code. Les 12 producteurs chargés depuis l'Excel ont
 **Installer sur le téléphone** : le producteur ouvre l'adresse du site dans Chrome, se connecte, puis choisit
 **⋮ → Ajouter à l'écran d'accueil**. Une icône « Suivi CIAF » apparaît comme une application.
 
+**Ajouter un secteur ou un produit** : dans l'administration, ouvrez **Secteurs et produits**. Cliquez sur **Ajouter**
+pour un nouveau secteur, ou ouvrez un secteur et remplissez une ligne vide en bas (nom du produit + unité) pour un nouveau
+produit. Ensuite, dans **Producteurs**, cochez ce secteur pour les producteurs concernés.
+Le produit apparaît aussitôt sur leur téléphone. Pour retirer un produit sans perdre l'historique, décochez « actif ».
+
 **Dépenses et ventes** : dans **Fiches, dépenses et ventes**, ouvrez la fiche du producteur pour la semaine,
 puis remplissez les lignes « Dépenses » et « Ventes » en bas de la page.
 
@@ -76,9 +87,10 @@ Le tableau de bord calcule le montant restant dû.
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_semaine_initiale && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 12 tests
+python manage.py test producteurs   # 14 tests
 ```
 
 ## À venir
 - **Volet agriculture** : la fiche de suivi agricole de M. Traoré sera intégrée dès réception
-  (superficies, cultures, rendements…). On peut déjà créer des producteurs avec le volet « Agriculture ».
+  (superficies, cultures, rendements…). En attendant, l'administrateur peut déjà ajouter les produits agricoles
+  dans le secteur « Agriculture » et y rattacher des producteurs.

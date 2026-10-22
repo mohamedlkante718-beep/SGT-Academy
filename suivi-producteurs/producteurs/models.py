@@ -5,15 +5,43 @@ from django.db import models
 from django.db.models import Sum
 
 
-class Producteur(models.Model):
-    VOLET_ELEVAGE = "elevage"
-    VOLET_AGRICULTURE = "agriculture"
-    VOLETS = [(VOLET_ELEVAGE, "Élevage"), (VOLET_AGRICULTURE, "Agriculture")]
+class Secteur(models.Model):
+    """Secteur d'activité (élevage, agriculture, maraîchage, pisciculture…), géré par l'administrateur."""
 
+    nom = models.CharField(max_length=60, unique=True)
+    ordre = models.PositiveIntegerField("ordre d'affichage", default=0)
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["ordre", "nom"]
+
+    def __str__(self):
+        return self.nom
+
+
+class Produit(models.Model):
+    """Produit proposé aux producteurs d'un secteur lors de la saisie (ex. Poulets adultes, Maïs)."""
+
+    secteur = models.ForeignKey(Secteur, on_delete=models.CASCADE, related_name="produits")
+    nom = models.CharField(max_length=80)
+    unite = models.CharField("unité", max_length=30, blank=True, help_text="Ex. têtes, œufs, kg, sacs, hectares.")
+    ordre = models.PositiveIntegerField("ordre d'affichage", default=0)
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["secteur__ordre", "ordre", "nom"]
+        constraints = [models.UniqueConstraint(fields=["secteur", "nom"], name="produit_unique_par_secteur")]
+
+    def __str__(self):
+        return f"{self.nom} ({self.unite})" if self.unite else self.nom
+
+
+class Producteur(models.Model):
     nom = models.CharField("nom et prénom", max_length=120)
     telephone = models.CharField("téléphone", max_length=20, unique=True,
                                  help_text="Sert d'identifiant de connexion sur le téléphone.")
-    volet = models.CharField(max_length=20, choices=VOLETS, default=VOLET_ELEVAGE)
+    secteurs = models.ManyToManyField(Secteur, related_name="producteurs", blank=True,
+                                      help_text="Le producteur verra les produits de ces secteurs sur son téléphone.")
     actif = models.BooleanField(default=True)
     ordre = models.PositiveIntegerField("ordre d'affichage", default=0)
     utilisateur = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
@@ -25,6 +53,9 @@ class Producteur(models.Model):
 
     def __str__(self):
         return self.nom
+
+    def produits_proposes(self):
+        return Produit.objects.filter(secteur__in=self.secteurs.all(), actif=True, secteur__actif=True).select_related("secteur")
 
     def fiche_precedente(self, semaine):
         return self.fiches.filter(semaine__lt=semaine).order_by("-semaine").first()
