@@ -89,7 +89,7 @@ Puis cliquez sur **Reload** dans l'onglet **Web**.
 
 ## Utilisation
 
-**Donner l'accès à un producteur** : dans l'administration, ouvrez **Producteurs**, puis un producteur ou **Ajouter**.
+**Donner l'accès à un producteur** : menu **Producteurs**, puis **Modifier** (ou **+ Ajouter un producteur**).
 Cochez **ses produits**, choisissez son **responsable**, saisissez son **téléphone** et un **code PIN** de 4 à 6 chiffres, puis enregistrez. Communiquez-lui l'adresse
 du site, son numéro et son code. Les 12 producteurs chargés depuis les fichiers Excel ont un numéro provisoire
 « A-COMPLETER-… » : remplacez-le par leur vrai numéro et donnez-leur un code PIN.
@@ -97,7 +97,7 @@ du site, son numéro et son code. Les 12 producteurs chargés depuis les fichier
 **Installer sur le téléphone** : le producteur ouvre l'adresse du site dans Chrome, se connecte, puis choisit
 **⋮ → Ajouter à l'écran d'accueil**. Une icône « Suivi CIAF » apparaît comme une application.
 
-**Ajouter un secteur ou un produit** : dans l'administration, ouvrez **Secteurs et produits**. Cliquez sur **Ajouter**
+**Ajouter un secteur ou un produit** : menu **Secteurs et produits**. Cliquez sur **Ajouter**
 pour un nouveau secteur, ou ouvrez un secteur et remplissez une ligne vide en bas (nom, unité, « se compte », « a une valeur »).
 Ensuite, dans **Producteurs**, cochez ce produit pour les producteurs concernés : il apparaît aussitôt sur leur téléphone.
 Pour retirer un produit sans perdre l'historique, décochez « actif ».
@@ -127,7 +127,7 @@ Le tableau de bord garde l'export CSV de la semaine et un lien direct vers le ra
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_fiches_excel && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 25 tests
+python manage.py test producteurs   # 33 tests
 ```
 
 ## À venir

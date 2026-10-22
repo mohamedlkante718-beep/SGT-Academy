@@ -1,0 +1,39 @@
+{% extends "gestion/base_gestion.html" %}
+{% load suivi %}
+{% block titre %}Prêts{% endblock %}
+{% block contenu %}
+<section class="section">
+  <h1>Prêts et remboursements</h1>
+  <div class="kpis"><div class="kpi"><span class="label">Total des prêts en cours</span><span class="val">{{ total|nombre }} <small>F CFA</small></span><span class="muted small">Prêts accordés − remboursements reçus</span></div></div>
+</section>
+<section class="section">
+  <h2>Enregistrer un prêt ou un remboursement</h2>
+  <form method="post" class="card formulaire ligne-form">
+    {% csrf_token %}
+    {% for champ in form %}{% include "gestion/_champ.html" %}{% endfor %}
+    <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div>
+  </form>
+</section>
+{% if encours %}
+<section class="section">
+  <h2>Reste dû par producteur</h2>
+  <div class="tablebox"><table><tbody>
+    {% for e in encours %}<tr><td>{{ e.producteur.nom }}</td><td class="num">{{ e.montant|nombre }} F</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
+<section class="section">
+  <h2>Historique</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Date</th><th>Producteur</th><th>Type</th><th>Description</th><th class="num">Montant</th><th></th></tr></thead>
+    <tbody>
+    {% for p in prets %}
+      <tr><td>{{ p.date|date:"d/m/Y" }}</td><td>{{ p.producteur.nom }}</td><td>{{ p.get_type_display }}</td><td class="texte">{{ p.description }}</td><td class="num">{{ p.montant|nombre }}</td>
+        <td><form method="post">{% csrf_token %}<button class="btn link danger" type="submit" name="supprimer" value="{{ p.pk }}">Supprimer</button></form></td></tr>
+    {% empty %}
+      <tr><td colspan="6" class="muted">Aucun prêt enregistré.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

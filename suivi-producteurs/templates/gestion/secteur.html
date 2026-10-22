@@ -1,0 +1,31 @@
+{% extends "gestion/base_gestion.html" %}
+{% block titre %}{{ titre }}{% endblock %}
+{% block contenu %}
+<section class="section">
+  <a class="btn link" href="{% url 'secteurs' %}">‹ Retour aux secteurs</a>
+  <h1>{{ titre }}</h1>
+</section>
+<form method="post" class="section">
+  {% csrf_token %}
+  <div class="card formulaire">
+    {% for champ in form %}{% include "gestion/_champ.html" %}{% endfor %}
+  </div>
+  <h2>Produits du secteur</h2>
+  <p class="muted small">Une ligne par produit. « Se compte » : le producteur donne une quantité. « A une valeur » : il donne une valeur en F CFA. Pour retirer un produit sans perdre l'historique, décochez « Actif ». Les lignes vides sont ignorées.</p>
+  {{ produits.management_form }}
+  {% if produits.non_form_errors %}<div class="notice warn">{{ produits.non_form_errors }}</div>{% endif %}
+  <div class="tablebox"><table class="saisie-table">
+    <thead><tr><th>Nom du produit</th><th>Unité</th><th>Se compte</th><th>A une valeur</th><th>Ordre</th><th>Actif</th></tr></thead>
+    <tbody>
+    {% for f in produits %}
+      <tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+        <td>{{ f.nom }}{{ f.nom.errors }}</td><td>{{ f.unite }}</td><td>{{ f.compter }}</td><td>{{ f.valoriser }}</td><td>{{ f.ordre }}</td><td>{{ f.actif }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  <div class="row">
+    <button class="btn primary" type="submit">Enregistrer</button>
+    <button class="btn" type="submit" name="continuer" value="1">Enregistrer et ajouter d'autres produits</button>
+  </div>
+</form>
+{% endblock %}

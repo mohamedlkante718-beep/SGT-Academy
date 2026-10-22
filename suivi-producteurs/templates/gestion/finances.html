@@ -1,0 +1,28 @@
+{% extends "gestion/base_gestion.html" %}
+{% block titre %}Dépenses et ventes{% endblock %}
+{% block contenu %}
+<section class="section">
+  <a class="btn link" href="{% url 'fiche_producteur' fiche.producteur_id %}?semaine={{ fiche.semaine|date:'Y-m-d' }}">‹ Retour à la fiche</a>
+  <h1>Dépenses et ventes — {{ fiche.producteur.nom }}</h1>
+  <p class="muted">Semaine du {{ fiche.semaine|date:"j F" }} au {{ fiche.fin|date:"j F Y" }}. Une ligne par opération ; les lignes vides sont ignorées. Cochez « Suppr. » pour retirer une ligne.</p>
+</section>
+<form method="post" class="section">
+  {% csrf_token %}
+  <h2>A. Dépenses</h2>
+  {{ depenses.management_form }}
+  <div class="tablebox"><table class="saisie-table">
+    <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Quantité</th><th>Prix unitaire</th><th>Montant (F)</th><th>Paiement</th><th>Suppr.</th></tr></thead>
+    <tbody>{% for f in depenses %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+      <td>{{ f.date }}{{ f.date.errors }}</td><td>{{ f.categorie }}{{ f.categorie.errors }}</td><td>{{ f.description }}</td><td>{{ f.quantite }}</td><td>{{ f.prix_unitaire }}</td><td>{{ f.montant }}{{ f.montant.errors }}</td><td>{{ f.mode_paiement }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <h2>B. Ventes</h2>
+  {{ ventes.management_form }}
+  <div class="tablebox"><table class="saisie-table">
+    <thead><tr><th>Date</th><th>Catégorie / lot</th><th>Description</th><th>Poids</th><th>Quantité</th><th>Prix unitaire</th><th>Montant (F)</th><th>Paiement</th><th>Client</th><th>Suppr.</th></tr></thead>
+    <tbody>{% for f in ventes %}<tr>{% for h in f.hidden_fields %}{{ h }}{% endfor %}
+      <td>{{ f.date }}{{ f.date.errors }}</td><td>{{ f.categorie }}{{ f.categorie.errors }}</td><td>{{ f.description }}</td><td>{{ f.poids }}</td><td>{{ f.quantite }}</td><td>{{ f.prix_unitaire }}</td><td>{{ f.montant }}{{ f.montant.errors }}</td><td>{{ f.mode_paiement }}</td><td>{{ f.client }}</td><td>{% if f.instance.pk %}{{ f.DELETE }}{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <p class="muted small">Besoin de plus de lignes ? Enregistrez : deux lignes vides réapparaissent à chaque fois.</p>
+  <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div>
+</form>
+{% endblock %}

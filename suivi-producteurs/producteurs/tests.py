@@ -274,3 +274,90 @@ class AdministrateurTests(TestCase):
         self.p.refresh_from_db()
         self.assertEqual(self.p.responsable.nom, "M. Traoré")
         self.assertTrue(self.client.login(username="76000100", password="5555"))
+
+
+class PagesGestionTests(TestCase):
+    """Les pages de gestion restent dans l'application (pas l'administration Django)."""
+
+    def setUp(self):
+        get_user_model().objects.create_superuser("chef", password="secret-123")
+        self.client.login(username="chef", password="secret-123")
+        self.p = creer_producteur("Alpha GANO", "76000001", [produit("Poulets")])
+        self.fiche = Fiche.objects.create(producteur=self.p, semaine=S1)
+
+    def test_pages_accessibles_et_menu_interne(self):
+        for nom in ("producteurs", "responsables", "secteurs", "prets", "producteur_ajouter", "responsable_ajouter",
+                    "secteur_ajouter"):
+            r = self.client.get(reverse(nom))
+            self.assertEqual(r.status_code, 200, nom)
+            self.assertNotContains(r, "/admin/producteurs/")
+        self.assertEqual(self.client.get(reverse("finances", args=[self.fiche.pk])).status_code, 200)
+
+    def test_ajouter_producteur(self):
+        r = self.client.post(reverse("producteur_ajouter"), {
+            "nom": "Sada COULIBALY", "telephone": "76 11 22 33", "code_pin": "2468",
+            "produits": [produit("Poulets").pk], "actif": "on", "ordre": "13"})
+        self.assertRedirects(r, reverse("producteurs"))
+        p = Producteur.objects.get(nom="Sada COULIBALY")
+        self.assertEqual((p.telephone, p.produits.count()), ("76112233", 1))
+        self.client.logout()
+        self.assertTrue(self.client.login(username="76112233", password="2468"))
+
+    def test_modifier_produits_sans_changer_le_pin(self):
+        r = self.client.post(reverse("producteur_modifier", args=[self.p.pk]), {
+            "nom": "Alpha GANO", "telephone": "76000001", "code_pin": "",
+            "produits": [produit("Pintades").pk, produit("Dindes").pk], "actif": "on", "ordre": "1"})
+        self.assertRedirects(r, reverse("producteurs"))
+        self.assertEqual(sorted(x.nom for x in self.p.produits.all()), ["Dindes", "Pintades"])
+        self.client.logout()
+        self.assertTrue(self.client.login(username="76000001", password="1234"))
+
+    def test_responsable_et_ses_producteurs(self):
+        r = self.client.post(reverse("responsable_ajouter"), {
+            "nom": "M. Traoré", "telephone": "76000100", "code_pin": "5555", "actif": "on", "producteurs": [self.p.pk]})
+        self.assertRedirects(r, reverse("responsables"))
+        self.p.refresh_from_db()
+        self.assertEqual(self.p.responsable.nom, "M. Traoré")
+
+    def test_secteur_pepiniere_avec_produits(self):
+        pep = Secteur.objects.get(nom="Pépinière")
+        data = {"nom": "Pépinière", "ordre": "3", "actif": "on",
+                "produits-TOTAL_FORMS": "3", "produits-INITIAL_FORMS": "0",
+                "produits-0-nom": "Plants de manguiers", "produits-0-unite": "plants", "produits-0-compter": "on",
+                "produits-0-valoriser": "on", "produits-0-ordre": "1", "produits-0-actif": "on",
+                "produits-1-ordre": "0", "produits-1-actif": "on", "produits-1-compter": "on", "produits-1-valoriser": "on",
+                "produits-2-ordre": "0", "produits-2-actif": "on", "produits-2-compter": "on", "produits-2-valoriser": "on"}
+        r = self.client.post(reverse("secteur_modifier", args=[pep.pk]), data)
+        self.assertRedirects(r, reverse("secteurs"))
+        self.assertEqual(list(pep.produits.values_list("nom", flat=True)), ["Plants de manguiers"])
+        r = self.client.get(reverse("producteur_modifier", args=[self.p.pk]))
+        self.assertContains(r, "Plants de manguiers")
+
+    def test_saisir_depenses_et_ventes(self):
+        url = reverse("finances", args=[self.fiche.pk])
+        data = {"depenses-TOTAL_FORMS": "2", "depenses-INITIAL_FORMS": "0",
+                "depenses-0-date": "2026-10-15", "depenses-0-categorie": "aliments", "depenses-0-montant": "25000",
+                "depenses-0-description": "Aliment démarrage",
+                "depenses-1-date": "2026-10-14",
+                "ventes-TOTAL_FORMS": "2", "ventes-INITIAL_FORMS": "0",
+                "ventes-0-date": "2026-10-16", "ventes-0-categorie": "Aviculture", "ventes-0-montant": "40000",
+                "ventes-1-date": "2026-10-14"}
+        r = self.client.post(url, data)
+        self.assertRedirects(r, reverse("fiche_producteur", args=[self.p.pk]) + "?semaine=2026-10-14")
+        self.fiche.refresh_from_db()
+        self.assertEqual((self.fiche.total_depenses, self.fiche.total_ventes), (25000, 40000))
+
+    def test_prets(self):
+        self.client.post(reverse("prets"), {"producteur": self.p.pk, "date": "2026-10-20", "type": "pret",
+                                            "montant": "100000", "description": "Achat poussins"})
+        self.client.post(reverse("prets"), {"producteur": self.p.pk, "date": "2026-10-21", "type": "remboursement",
+                                            "montant": "30000"})
+        r = self.client.get(reverse("prets"))
+        self.assertEqual(r.context["total"], 70000)
+        self.client.post(reverse("prets"), {"supprimer": Pret.objects.get(type="remboursement").pk})
+        self.assertEqual(self.p.prets_en_cours(), 100000)
+
+    def test_responsable_n_a_pas_acces(self):
+        Responsable.objects.create(nom="R", telephone="76000200", utilisateur=compte("76000200"))
+        self.client.login(username="76000200", password="1234")
+        self.assertRedirects(self.client.get(reverse("producteurs")), reverse("tableau"))

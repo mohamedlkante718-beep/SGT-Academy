@@ -1,8 +1,10 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
+from django.db import transaction
+from django.forms import inlineformset_factory
 
-from .models import Producteur, Produit, Responsable
+from .models import Depense, Fiche, Pret, Producteur, Produit, Responsable, Secteur, Vente
 
 
 def normaliser_telephone(valeur):
@@ -28,6 +30,21 @@ class ConnexionForm(AuthenticationForm):
         # Les administrateurs se connectent avec leur nom d'utilisateur, les autres avec leur numéro.
         tel = normaliser_telephone(brut)
         return tel if tel and len(tel) >= 6 and tel.lstrip("+").isdigit() else brut
+
+
+def lier_compte(obj, pin=None):
+    """Crée ou met à jour le compte de connexion d'un producteur ou d'un responsable
+    (identifiant = téléphone, mot de passe = code PIN). L'objet doit ensuite être enregistré."""
+    user = obj.utilisateur or get_user_model()(username=obj.telephone)
+    user.username = obj.telephone
+    user.first_name = obj.nom[:150]
+    user.is_active = obj.actif
+    if pin:
+        user.set_password(pin)
+    elif not user.pk:
+        user.set_unusable_password()
+    user.save()
+    obj.utilisateur = user
 
 
 class CompteTelephoneForm(forms.ModelForm):
@@ -60,6 +77,19 @@ class CompteTelephoneForm(forms.ModelForm):
             self.add_error("code_pin", "Choisissez un code PIN pour que cette personne puisse se connecter.")
         return data
 
+    def save(self, commit=True):
+        obj = super().save(commit=False)
+        if commit:
+            with transaction.atomic():
+                lier_compte(obj, self.cleaned_data.get("code_pin"))
+                obj.save()
+                self.save_m2m()
+                self.apres_enregistrement(obj)
+        return obj
+
+    def apres_enregistrement(self, obj):
+        pass
+
 
 class ProduitsParSecteur(forms.ModelMultipleChoiceField):
     """Cases à cocher des produits, regroupées par secteur."""
@@ -77,6 +107,7 @@ class ProduitsParSecteur(forms.ModelMultipleChoiceField):
 
 
 class ProducteurAdminForm(CompteTelephoneForm):
+    field_order = ["nom", "telephone", "code_pin", "responsable", "produits", "actif", "ordre"]
     produits = ProduitsParSecteur(required=False, label="Produits attribués",
                                   help_text="Le producteur ne remplira que ces produits sur son téléphone.")
 
@@ -90,6 +121,7 @@ class ProducteurAdminForm(CompteTelephoneForm):
 
 
 class ResponsableAdminForm(CompteTelephoneForm):
+    field_order = ["nom", "telephone", "code_pin", "producteurs", "actif"]
     producteurs = forms.ModelMultipleChoiceField(
         queryset=Producteur.objects.all(), required=False, widget=forms.CheckboxSelectMultiple,
         label="Producteurs suivis", help_text="Ce responsable verra et validera les fiches de ces producteurs.")
@@ -103,6 +135,11 @@ class ResponsableAdminForm(CompteTelephoneForm):
         if self.instance.pk:
             self.fields["producteurs"].initial = self.instance.producteurs.all()
 
+    def apres_enregistrement(self, obj):
+        choisis = [p.pk for p in self.cleaned_data.get("producteurs") or []]
+        obj.producteurs.exclude(pk__in=choisis).update(responsable=None)
+        Producteur.objects.filter(pk__in=choisis).update(responsable=obj)
+
 
 class ValidationForm(forms.Form):
     decision = forms.ChoiceField(choices=[("valider", "Valider"), ("corriger", "Demander une correction")])
@@ -114,3 +151,39 @@ class ValidationForm(forms.Form):
         if data.get("decision") == "corriger" and not data.get("commentaire", "").strip():
             self.add_error("commentaire", "Expliquez au producteur ce qu'il doit corriger.")
         return data
+
+
+# ---------------------------------------------------------------- pages de gestion (administrateur)
+
+DATE = forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d")
+MONTANT = forms.NumberInput(attrs={"inputmode": "numeric", "min": 0, "step": 1})
+
+
+class SecteurForm(forms.ModelForm):
+    class Meta:
+        model = Secteur
+        fields = ["nom", "ordre", "actif"]
+
+
+ProduitsFormSet = inlineformset_factory(
+    Secteur, Produit, fields=["nom", "unite", "compter", "valoriser", "ordre", "actif"], extra=3, can_delete=False,
+    widgets={"ordre": forms.NumberInput(attrs={"min": 0, "style": "width:5em"})})
+
+DepensesFormSet = inlineformset_factory(
+    Fiche, Depense, extra=2, can_delete=True,
+    fields=["date", "categorie", "description", "quantite", "prix_unitaire", "montant", "mode_paiement"],
+    widgets={"date": DATE, "montant": MONTANT, "prix_unitaire": MONTANT,
+             "quantite": forms.NumberInput(attrs={"inputmode": "decimal", "step": "any", "min": 0})})
+
+VentesFormSet = inlineformset_factory(
+    Fiche, Vente, extra=2, can_delete=True,
+    fields=["date", "categorie", "description", "poids", "quantite", "prix_unitaire", "montant", "mode_paiement", "client"],
+    widgets={"date": DATE, "montant": MONTANT, "prix_unitaire": MONTANT,
+             "quantite": forms.NumberInput(attrs={"inputmode": "decimal", "step": "any", "min": 0})})
+
+
+class PretForm(forms.ModelForm):
+    class Meta:
+        model = Pret
+        fields = ["producteur", "date", "type", "montant", "description"]
+        widgets = {"date": DATE, "montant": MONTANT}

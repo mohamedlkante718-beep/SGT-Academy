@@ -61,7 +61,7 @@
     </tbody>
     <tfoot><tr><td>Total</td><td></td><td class="num">{% if tot.a_precedent %}{{ tot.precedent|nombre }}{% else %}—{% endif %}</td><td class="num">{{ tot.actuel|nombre }}</td><td>{% pastille tot.evo " F" %}</td><td class="num">{{ tot.depenses|nombre }}</td><td class="num">{{ tot.ventes|nombre }}</td><td class="num">{{ tot.resultat|nombre }}</td><td class="num">{{ tot.prets|nombre }}</td></tr></tfoot>
   </table></div>
-  <p class="muted small">Montants en F CFA. Cliquez sur un nom pour voir sa fiche détaillée{% if not est_admin %} et la valider{% endif %}.{% if est_admin %} Les dépenses et ventes se saisissent dans « Fiches, dépenses et ventes », les prêts dans « Prêts ».{% endif %}</p>
+  <p class="muted small">Montants en F CFA. Cliquez sur un nom pour voir sa fiche détaillée{% if not est_admin %} et la valider{% endif %}.{% if est_admin %} Pour saisir les dépenses et ventes, ouvrez la fiche du producteur ; les prêts se saisissent dans « Prêts ».{% endif %}</p>
 </section>
 <section class="section">
   <h2>Évolution de la valeur totale, semaine par semaine</h2>
@@ -79,6 +79,6 @@
   {% endif %}
   </div>
 </section>
-{% if est_admin %}<p class="muted small">Pour ajouter un secteur (maraîchage, pisciculture…) ou de nouveaux produits : <a href="{% url 'admin:producteurs_secteur_changelist' %}">Secteurs et produits</a>.</p>{% endif %}
+{% if est_admin %}<p class="muted small">Pour ajouter un secteur (maraîchage, pisciculture…) ou de nouveaux produits : <a href="{% url 'secteurs' %}">Secteurs et produits</a>.</p>{% endif %}
 {% endif %}
 {% endblock %}

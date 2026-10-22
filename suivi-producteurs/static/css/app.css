@@ -119,3 +119,24 @@ td a { font-weight: 600; text-decoration: none; }
 .surtitre { text-transform: uppercase; letter-spacing: .08em; font-size: .75rem; font-weight: 700; color: var(--accent); margin: 0; }
 .organisation { font-family: var(--font-display); font-weight: 600; color: var(--ink); margin: 0; }
 abbr[title] { text-decoration: none; }
+
+/* ---- pages de gestion ---- */
+.formulaire { max-width: 980px; }
+.formulaire .aide { font-size: .82rem; color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 400; }
+.field.erreur input, .field.erreur select { border-color: var(--down); }
+label.case { display: flex; align-items: center; gap: 8px; text-transform: none; letter-spacing: 0; font-size: 1rem; color: var(--ink); font-weight: 600; }
+label.case input, .saisie-table input[type="checkbox"] { width: auto; }
+/* Cases à cocher regroupées (ex. produits par secteur) : titre du groupe sur toute la largeur, puis colonnes. */
+.champ-checkboxselectmultiple > div { display: flex; flex-direction: column; gap: 16px; }
+.champ-checkboxselectmultiple > div > div { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+.champ-checkboxselectmultiple > div > div > label:first-child { grid-column: 1 / -1; font-family: var(--font-display); font-size: 1rem; color: var(--accent); text-transform: none; letter-spacing: 0; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
+.champ-checkboxselectmultiple label { display: flex; gap: 8px; align-items: flex-start; text-transform: none; letter-spacing: 0; font-weight: 400; color: var(--ink); font-size: .95rem; }
+.champ-checkboxselectmultiple > label { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.champ-checkboxselectmultiple input { width: auto; margin-top: 3px; }
+.section > .btn.link { align-self: flex-start; }
+.saisie-table td { padding: 6px; vertical-align: top; }
+.saisie-table input, .saisie-table select { min-width: 90px; padding: 7px 8px; }
+.saisie-table input[type="date"] { min-width: 140px; }
+.ligne-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; max-width: none; }
+.btn.danger { color: var(--down); }
+.row form { margin: 0; }

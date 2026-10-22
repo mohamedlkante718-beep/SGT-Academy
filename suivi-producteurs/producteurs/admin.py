@@ -1,9 +1,8 @@
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.auth import get_user_model
 from django.db import transaction
 
-from .forms import ProducteurAdminForm, ResponsableAdminForm
+from .forms import ProducteurAdminForm, ResponsableAdminForm, lier_compte
 from .models import (Depense, Fiche, LigneEffectif, LigneValeur, Pret, Producteur, Produit, Responsable,
                      Secteur, Vente)
 
@@ -18,14 +17,7 @@ class CompteTelephoneAdmin(admin.ModelAdmin):
 
     @transaction.atomic
     def save_model(self, request, obj, form, change):
-        user = obj.utilisateur or get_user_model()(username=obj.telephone)
-        user.username = obj.telephone
-        user.first_name = obj.nom[:150]
-        user.is_active = obj.actif
-        if form.cleaned_data.get("code_pin"):
-            user.set_password(form.cleaned_data["code_pin"])
-        user.save()
-        obj.utilisateur = user
+        lier_compte(obj, form.cleaned_data.get("code_pin"))
         super().save_model(request, obj, form, change)
 
 

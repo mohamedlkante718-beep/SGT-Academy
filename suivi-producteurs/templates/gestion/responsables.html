@@ -1,0 +1,27 @@
+{% extends "gestion/base_gestion.html" %}
+{% block titre %}Responsables{% endblock %}
+{% block contenu %}
+<section class="section">
+  <div class="row between">
+    <h1>Responsables de suivi</h1>
+    <a class="btn primary" href="{% url 'responsable_ajouter' %}">+ Ajouter un responsable</a>
+  </div>
+  <p class="muted small">Un responsable voit uniquement ses producteurs, leurs rapports, et valide leurs fiches.</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>Responsable</th><th>Téléphone</th><th>Producteurs suivis</th><th>Fiches à valider</th><th></th></tr></thead>
+    <tbody>
+    {% for r in responsables %}
+      <tr>
+        <td><b>{{ r.nom }}</b>{% if not r.actif %} <span class="tag">inactif</span>{% endif %}</td>
+        <td>{{ r.telephone }}</td>
+        <td class="texte">{% for p in r.producteurs.all %}{{ p.nom }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="muted">aucun</span>{% endfor %}</td>
+        <td>{% if r.a_valider %}<span class="pill new">{{ r.a_valider }}</span>{% else %}<span class="muted">0</span>{% endif %}</td>
+        <td><a class="btn" href="{% url 'responsable_modifier' r.pk %}">Modifier</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="muted">Aucun responsable. Cliquez sur « Ajouter un responsable » (par exemple M. Traoré).</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

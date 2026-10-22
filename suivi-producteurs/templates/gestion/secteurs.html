@@ -1,0 +1,24 @@
+{% extends "gestion/base_gestion.html" %}
+{% block titre %}Secteurs et produits{% endblock %}
+{% block contenu %}
+<section class="section">
+  <div class="row between">
+    <h1>Secteurs et produits</h1>
+    <a class="btn primary" href="{% url 'secteur_ajouter' %}">+ Ajouter un secteur</a>
+  </div>
+  <p class="muted small">Ouvrez un secteur pour ajouter ou modifier ses produits. Ensuite, attribuez les produits aux producteurs depuis la page « Producteurs ».</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>Secteur</th><th class="num">Produits</th><th class="num">Producteurs</th><th></th></tr></thead>
+    <tbody>
+    {% for s in secteurs %}
+      <tr>
+        <td><b>{{ s.nom }}</b>{% if not s.actif %} <span class="tag">inactif</span>{% endif %}</td>
+        <td class="num">{% if s.nb_produits %}{{ s.nb_produits }}{% else %}<span class="pill new">aucun</span>{% endif %}</td>
+        <td class="num">{{ s.nb_producteurs }}</td>
+        <td><a class="btn" href="{% url 'secteur_modifier' s.pk %}">{% if s.nb_produits %}Voir les produits{% else %}Ajouter des produits{% endif %}</a></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}

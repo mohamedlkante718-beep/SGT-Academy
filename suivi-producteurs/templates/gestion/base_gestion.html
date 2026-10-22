@@ -4,10 +4,9 @@
 <a href="{% url 'tableau' %}" {% if onglet == 'tableau' %}aria-current="page"{% endif %}>{% if est_admin %}Tableau de bord{% else %}Mes producteurs{% endif %}</a>
 <a href="{% url 'rapport' %}" {% if onglet == 'rapport' %}aria-current="page"{% endif %}>Rapports</a>
 {% if est_admin %}
-<a href="{% url 'admin:producteurs_producteur_changelist' %}">Producteurs</a>
-<a href="{% url 'admin:producteurs_responsable_changelist' %}">Responsables</a>
-<a href="{% url 'admin:producteurs_secteur_changelist' %}">Secteurs et produits</a>
-<a href="{% url 'admin:producteurs_fiche_changelist' %}">Fiches, dépenses et ventes</a>
-<a href="{% url 'admin:producteurs_pret_changelist' %}">Prêts</a>
+<a href="{% url 'producteurs' %}" {% if onglet == 'producteurs' %}aria-current="page"{% endif %}>Producteurs</a>
+<a href="{% url 'responsables' %}" {% if onglet == 'responsables' %}aria-current="page"{% endif %}>Responsables</a>
+<a href="{% url 'secteurs' %}" {% if onglet == 'secteurs' %}aria-current="page"{% endif %}>Secteurs et produits</a>
+<a href="{% url 'prets' %}" {% if onglet == 'prets' %}aria-current="page"{% endif %}>Prêts</a>
 {% endif %}
 {% endblock %}

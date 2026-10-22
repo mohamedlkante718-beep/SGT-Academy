@@ -290,7 +290,8 @@ def fiche_producteur(request, pk):
             "effectifs": comparer_lignes(fiche.effectifs.all(), precedente.effectifs.all() if precedente else None, "quantite"),
             "valeurs": comparer_lignes(fiche.valeurs.all(), precedente.valeurs.all() if precedente else None, "montant"),
             "evo_total": evolution(precedente.total_valeurs if precedente else None, fiche.total_valeurs),
-            "admin_url": reverse("admin:producteurs_fiche_change", args=[fiche.pk]),
+            "finances_url": reverse("finances", args=[fiche.pk]),
+            "correction_url": reverse("admin:producteurs_fiche_change", args=[fiche.pk]),
         })
     return render(request, "gestion/fiche.html", ctx)
 

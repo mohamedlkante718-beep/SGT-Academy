@@ -1,0 +1,15 @@
+{% extends "gestion/base_gestion.html" %}
+{% block titre %}{{ titre }}{% endblock %}
+{% block contenu %}
+<section class="section">
+  <a class="btn link" href="{{ retour }}">‹ Retour à la liste</a>
+  <h1>{{ titre }}</h1>
+  {% if aide %}<p class="muted">{{ aide }}</p>{% endif %}
+</section>
+<form method="post" class="card formulaire">
+  {% csrf_token %}
+  {% if form.non_field_errors %}<div class="notice warn">{{ form.non_field_errors }}</div>{% endif %}
+  {% for champ in form %}{% include "gestion/_champ.html" %}{% endfor %}
+  <div class="row"><button class="btn primary" type="submit">Enregistrer</button><a class="btn" href="{{ retour }}">Annuler</a></div>
+</form>
+{% endblock %}

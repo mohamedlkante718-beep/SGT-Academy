@@ -4,7 +4,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, re_path
 from django.views.static import serve
 
-from producteurs import views
+from producteurs import gestion, views
 
 urlpatterns = [
     path("", views.accueil, name="accueil"),
@@ -14,6 +14,17 @@ urlpatterns = [
     path("saisie/<str:semaine>/", views.saisie, name="saisie_semaine"),
     path("gestion/", views.tableau, name="tableau"),
     path("gestion/producteur/<int:pk>/", views.fiche_producteur, name="fiche_producteur"),
+    path("gestion/producteurs/", gestion.producteurs, name="producteurs"),
+    path("gestion/producteurs/ajouter/", gestion.producteur_form, name="producteur_ajouter"),
+    path("gestion/producteurs/<int:pk>/modifier/", gestion.producteur_form, name="producteur_modifier"),
+    path("gestion/responsables/", gestion.responsables, name="responsables"),
+    path("gestion/responsables/ajouter/", gestion.responsable_form, name="responsable_ajouter"),
+    path("gestion/responsables/<int:pk>/modifier/", gestion.responsable_form, name="responsable_modifier"),
+    path("gestion/secteurs/", gestion.secteurs, name="secteurs"),
+    path("gestion/secteurs/ajouter/", gestion.secteur_form, name="secteur_ajouter"),
+    path("gestion/secteurs/<int:pk>/", gestion.secteur_form, name="secteur_modifier"),
+    path("gestion/fiches/<int:pk>/finances/", gestion.finances, name="finances"),
+    path("gestion/prets/", gestion.prets, name="prets"),
     path("gestion/rapport/", views.rapport, name="rapport"),
     path("gestion/rapport/imprimer/", views.rapport_imprimable, name="rapport_imprimable"),
     path("gestion/rapport/excel/", views.rapport_excel, name="rapport_excel"),
