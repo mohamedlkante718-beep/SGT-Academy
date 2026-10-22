@@ -82,6 +82,13 @@ else
     else "$PY" manage.py createsuperuser --email ""; fi
 fi
 
+CERTIFICAT=""
+case "$DOMAINE" in
+    *.pythonanywhere.com) ;;  # certificat HTTPS déjà fourni par PythonAnywhere
+    *) CERTIFICAT="  • HTTPS certificate   : Let's Encrypt
+" ;;
+esac
+
 cat <<FIN
 
 ============================================================
@@ -92,8 +99,7 @@ cat <<FIN
   • Source code         : $DOSSIER
   • Static files        : URL  /static/
                           Directory  $DOSSIER/staticfiles
-  • HTTPS certificate   : Let's Encrypt (pour une adresse en .org)
-  • Force HTTPS         : Enabled
+$CERTIFICAT  • Force HTTPS         : Enabled
 
  Puis cliquez sur le gros bouton vert « Reload ».
  Ouvrez ensuite : https://$DOMAINE/gestion/
