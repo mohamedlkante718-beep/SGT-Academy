@@ -24,6 +24,21 @@ On peut changer ce jour avec la variable `SEMAINE_JOUR_DEBUT`, où 0 = lundi.
 
 ## Mise en ligne sur PythonAnywhere (compte `gageetudes`)
 
+### Méthode simple : fichier zip + script
+1. Onglet **Files** → **Upload a file** → envoyez `suivi-producteurs.zip` dans `/home/gageetudes/`.
+2. Onglet **Consoles** → **Bash**, puis tapez :
+   ```bash
+   unzip -o suivi-producteurs.zip && bash suivi-producteurs/installer_pythonanywhere.sh
+   ```
+   Le script installe tout, charge les fiches d'octobre, crée le fichier de démarrage du site (l'ancien est
+   sauvegardé à côté) et vous demande un nom et un mot de passe administrateur.
+3. Onglet **Web** : faites les 4 réglages affichés à la fin du script (Virtualenv, Source code, Static files,
+   Force HTTPS), puis cliquez sur **Reload**.
+
+Pour une mise à jour : envoyez le nouveau zip et relancez la même commande. La base de données est conservée.
+
+### Méthode manuelle (avec git)
+
 > Ces étapes utilisent l'adresse `gageetudes.pythonanywhere.com`. Si cette adresse sert déjà à un autre site,
 > créez une nouvelle application web (onglet **Web** → **Add a new web app**) ou demandez conseil avant de la remplacer.
 
