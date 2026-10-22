@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load suivi %}
+{% block titre %}Ma fiche{% endblock %}
+{% block corps %}mobile{% endblock %}
+{% block contenu %}
+<section class="section">
+  <div class="semnav">
+    <a class="btn link" href="{% url 'saisie_semaine' semaine_precedente|date:'Y-m-d' %}">‹ Semaine d'avant</a>
+    {% if semaine_suivante %}<a class="btn link" href="{% url 'saisie_semaine' semaine_suivante|date:'Y-m-d' %}">Semaine suivante ›</a>{% endif %}
+  </div>
+  <h1>Semaine du {{ semaine|date:"j F" }} au {{ fin|date:"j F Y" }}</h1>
+  <p class="muted">{% if nouvelle %}Nouvelle fiche.{% else %}Fiche déjà enregistrée : vous pouvez la corriger.{% endif %}
+    {% if precedente %}Les chiffres de la semaine du {{ precedente.semaine|date:"j F" }} sont rappelés sous chaque ligne.{% endif %}</p>
+</section>
+
+<form method="post" id="fiche" class="section">
+  {% csrf_token %}
+  {% if form.errors or jeux.effectifs.non_form_errors or jeux.valeurs.non_form_errors %}
+    <div class="notice warn">Certaines lignes sont incomplètes. Corrigez les cases signalées en rouge puis enregistrez.</div>
+  {% endif %}
+
+  {% for nom, jeu in jeux.items %}
+  <div class="card" data-jeu="{{ nom }}">
+    {% if nom == "effectifs" %}
+      <h2>Mes animaux (effectifs)</h2>
+      <p class="muted small">Nombre d'animaux, d'œufs, de mortalités…</p>
+    {% else %}
+      <h2>Valeur de mes produits</h2>
+      <p class="muted small">Valeur actuelle estimée, en F CFA.</p>
+    {% endif %}
+    {{ jeu.management_form }}
+    <div class="lignes">
+    {% for f in jeu %}
+      <div class="ligne">
+        {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+        <div class="field"><label for="{{ f.libelle.id_for_label }}">Élément</label>{{ f.libelle }}{{ f.libelle.errors }}</div>
+        {% if nom == "effectifs" %}
+          <div class="field"><label for="{{ f.quantite.id_for_label }}">Nombre</label>{{ f.quantite }}{{ f.quantite.errors }}</div>
+          <div class="prec">{% with p=prec_eff|get:f.libelle.value %}{% if precedente %}Semaine d'avant : <b>{{ p|nombre }}</b>{% endif %}{% endwith %}
+            {% if f.instance.pk %}<label class="suppr">{{ f.DELETE }} supprimer</label>{% endif %}</div>
+        {% else %}
+          <div class="field"><label for="{{ f.montant.id_for_label }}">Valeur (F)</label>{{ f.montant }}{{ f.montant.errors }}</div>
+          <div class="prec">{% with p=prec_val|get:f.libelle.value %}{% if precedente %}Semaine d'avant : <b>{{ p|nombre }} F</b>{% endif %}{% endwith %}
+            {% if f.instance.pk %}<label class="suppr">{{ f.DELETE }} supprimer</label>{% endif %}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    </div>
+    <template>
+      <div class="ligne">
+        {% for h in jeu.empty_form.hidden_fields %}{{ h }}{% endfor %}
+        <div class="field"><label>Élément</label>{{ jeu.empty_form.libelle }}</div>
+        {% if nom == "effectifs" %}<div class="field"><label>Nombre</label>{{ jeu.empty_form.quantite }}</div>
+        {% else %}<div class="field"><label>Valeur (F)</label>{{ jeu.empty_form.montant }}</div>{% endif %}
+      </div>
+    </template>
+    <button type="button" class="btn link" data-ajouter>+ Ajouter un élément</button>
+  </div>
+  {% endfor %}
+
+  <div class="card">
+    <h2>Observations</h2>
+    {{ form.observations }}
+  </div>
+</form>
+{% endblock %}
+{% block apres %}
+<div class="barre"><div class="wrap">
+  <div class="totaux"><span><b>Valeur totale</b><span id="total">—</span></span>
+    {% if precedente %}<span><b>Semaine d'avant</b>{{ precedente.total_valeurs|nombre }} F</span>{% endif %}</div>
+  <button class="btn primary big" type="submit" form="fiche">Enregistrer ma fiche</button>
+</div></div>
+{% endblock %}
+{% block scripts %}{% load static %}<script src="{% static 'js/saisie.js' %}"></script>{% endblock %}

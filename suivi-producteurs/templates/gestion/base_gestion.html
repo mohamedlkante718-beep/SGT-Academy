@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block sous_titre %} · administration{% endblock %}
+{% block menu %}
+<a href="{% url 'tableau' %}" {% if onglet == 'tableau' %}aria-current="page"{% endif %}>Tableau de bord</a>
+<a href="{% url 'admin:producteurs_producteur_changelist' %}">Producteurs</a>
+<a href="{% url 'admin:producteurs_fiche_changelist' %}">Fiches, dépenses et ventes</a>
+<a href="{% url 'admin:producteurs_pret_changelist' %}">Prêts</a>
+{% endblock %}
