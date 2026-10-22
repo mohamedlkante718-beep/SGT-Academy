@@ -38,3 +38,12 @@ def pastille(evo, unite=""):
     pct = f" ({'+' if ecart > 0 else ''}{str(evo['pct']).replace('.', ',')} %)" if evo.get("pct") is not None else ""
     classe = "up" if etat == "hausse" else "down"
     return format_html('<span class="pill {}">{}{}{}{}</span>', classe, fleche, nombre(ecart), unite, pct)
+
+
+@register.simple_tag
+def statut(fiche):
+    """Pastille du statut de validation d'une fiche."""
+    if fiche is None:
+        return format_html('<span class="tag">non reçue</span>')
+    classe = {"validee": "up", "a_corriger": "down"}.get(fiche.statut, "new")
+    return format_html('<span class="pill {}">{}</span>', classe, fiche.get_statut_display())

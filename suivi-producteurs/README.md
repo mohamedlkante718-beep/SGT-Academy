@@ -4,14 +4,20 @@ Application de suivi hebdomadaire des producteurs du CIAF.
 
 | Qui | Où | Ce qu'il fait |
 |---|---|---|
-| **Administrateur** | Ordinateur, page web `/gestion/` | Voit le tableau de bord : valeur précédente, valeur actuelle, évolution (▲ hausse / ▼ baisse), dépenses, ventes, résultat net, prêts en cours. Il est le seul à pouvoir ajouter des producteurs, leur donner un code PIN, saisir les dépenses, les ventes et les prêts. |
-| **Producteur** | Téléphone (application installable) | Se connecte avec son numéro et son code PIN, et remplit uniquement la fiche de **ses produits** : quantités, valeur, observations. Il choisit ses produits dans la liste de ses secteurs et voit les chiffres de sa semaine précédente. Il ne voit ni les autres producteurs ni les finances. |
+| **Administrateur** | Ordinateur, page web `/gestion/` | Voit tout : valeur précédente, valeur actuelle, évolution (▲ hausse / ▼ baisse), dépenses, ventes, résultat net, prêts en cours. Il est le seul à créer les producteurs et les responsables, à **attribuer à chaque producteur ses produits** (et à les changer), à saisir les dépenses, les ventes et les prêts. Il peut aussi valider les fiches. |
+| **Responsable** (ex. M. Traoré) | Ordinateur ou téléphone, même adresse | Voit **uniquement ses producteurs** et leur évolution, et **valide** leurs fiches, ou les renvoie au producteur pour correction avec un commentaire. Il ne modifie rien et ne voit pas les finances. |
+| **Producteur** | Téléphone (application installable) | Se connecte avec son numéro et son code PIN. Il remplit uniquement **les produits que l'administrateur lui a attribués** (quantité et/ou valeur), plus ses observations. Il voit ses chiffres de la semaine d'avant et le statut de ses fiches. |
 
-**Secteurs et produits** : l'administrateur crée autant de secteurs qu'il veut (Élevage, Agriculture, Maraîchage,
-Pisciculture, Apiculture…) et, dans chaque secteur, la liste des produits avec leur unité (têtes, œufs, kg, sacs…).
-Chaque producteur est rattaché à un ou plusieurs secteurs : sur son téléphone, il ne voit que les produits de ses secteurs.
-Le secteur Élevage est créé automatiquement avec les 28 produits de la fiche Excel. Le secteur Agriculture est créé vide,
-en attendant la fiche de M. Traoré.
+**Secteurs et produits** : l'administrateur crée autant de secteurs qu'il veut, puis les produits de chaque secteur.
+Pour chaque produit, il indique l'unité (têtes, œufs, kg, plants…) et s'il « se compte » (quantité), s'il « a une valeur » (F CFA), ou les deux.
+Trois secteurs sont déjà créés :
+- **Élevage**, avec les 28 produits de la fiche Excel ;
+- **Agriculture**, vide, à compléter avec la fiche de M. Traoré ;
+- **Pépinière**, vide, à compléter.
+
+**Circuit d'une fiche** : le producteur envoie sa fiche (statut **À valider**). Le responsable la **valide**, ou demande une
+**correction** avec un commentaire que le producteur voit sur son téléphone. Le producteur corrige et renvoie. Une fiche validée
+ne peut plus être modifiée par le producteur. L'administrateur peut toujours la corriger dans l'administration.
 
 La semaine de suivi va du **mercredi au mardi**, comme la fiche Excel de référence (du 14 au 20 octobre 2026).
 On peut changer ce jour avec la variable `SEMAINE_JOUR_DEBUT`, où 0 = lundi.
@@ -62,7 +68,7 @@ Puis cliquez sur **Reload** dans l'onglet **Web**.
 ## Utilisation
 
 **Donner l'accès à un producteur** : dans l'administration, ouvrez **Producteurs**, puis un producteur ou **Ajouter**.
-Saisissez son **téléphone** et un **code PIN** de 4 à 6 chiffres, puis enregistrez. Communiquez-lui l'adresse
+Cochez **ses produits**, choisissez son **responsable**, saisissez son **téléphone** et un **code PIN** de 4 à 6 chiffres, puis enregistrez. Communiquez-lui l'adresse
 du site, son numéro et son code. Les 12 producteurs chargés depuis l'Excel ont un numéro provisoire
 « A-COMPLETER-… » : remplacez-le par leur vrai numéro et donnez-leur un code PIN.
 
@@ -70,9 +76,12 @@ du site, son numéro et son code. Les 12 producteurs chargés depuis l'Excel ont
 **⋮ → Ajouter à l'écran d'accueil**. Une icône « Suivi CIAF » apparaît comme une application.
 
 **Ajouter un secteur ou un produit** : dans l'administration, ouvrez **Secteurs et produits**. Cliquez sur **Ajouter**
-pour un nouveau secteur, ou ouvrez un secteur et remplissez une ligne vide en bas (nom du produit + unité) pour un nouveau
-produit. Ensuite, dans **Producteurs**, cochez ce secteur pour les producteurs concernés.
-Le produit apparaît aussitôt sur leur téléphone. Pour retirer un produit sans perdre l'historique, décochez « actif ».
+pour un nouveau secteur, ou ouvrez un secteur et remplissez une ligne vide en bas (nom, unité, « se compte », « a une valeur »).
+Ensuite, dans **Producteurs**, cochez ce produit pour les producteurs concernés : il apparaît aussitôt sur leur téléphone.
+Pour retirer un produit sans perdre l'historique, décochez « actif ».
+
+**Créer un responsable** : dans **Responsables** → **Ajouter**, saisissez son nom, son téléphone et un code PIN, puis cochez
+les producteurs qu'il suit. Il se connecte à la même adresse que les producteurs et arrive sur « Mes producteurs ».
 
 **Dépenses et ventes** : dans **Fiches, dépenses et ventes**, ouvrez la fiche du producteur pour la semaine,
 puis remplissez les lignes « Dépenses » et « Ventes » en bas de la page.
@@ -87,10 +96,10 @@ Le tableau de bord calcule le montant restant dû.
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_semaine_initiale && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 14 tests
+python manage.py test producteurs   # 20 tests
 ```
 
 ## À venir
 - **Volet agriculture** : la fiche de suivi agricole de M. Traoré sera intégrée dès réception
   (superficies, cultures, rendements…). En attendant, l'administrateur peut déjà ajouter les produits agricoles
-  dans le secteur « Agriculture » et y rattacher des producteurs.
+  et de pépinière dans leurs secteurs, et les attribuer aux producteurs.

@@ -5,11 +5,14 @@
 {% block contenu %}
 <section class="section">
   <h1>Bonjour {{ producteur.nom }}</h1>
+  {% for f in a_corriger %}
+  <a class="notice warn" href="{% url 'saisie_semaine' f.semaine|date:'Y-m-d' %}"><b>À corriger :</b> fiche de la semaine du {{ f.semaine|date:"j F" }}. « {{ f.commentaire }} » Touchez ici pour la corriger.</a>
+  {% endfor %}
   <div class="card">
     <span class="label">Semaine du {{ semaine|date:"j F" }} au {{ fin|date:"j F Y" }}</span>
     {% if fiche_semaine %}
-      <p>Votre fiche de cette semaine est enregistrée. Valeur déclarée : <b>{{ fiche_semaine.total_valeurs|nombre }} F CFA</b>.</p>
-      <a class="btn big" href="{% url 'saisie_semaine' semaine|date:'Y-m-d' %}">Modifier ma fiche</a>
+      <p>Votre fiche de cette semaine est envoyée. {% statut fiche_semaine %}<br>Valeur déclarée : <b>{{ fiche_semaine.total_valeurs|nombre }} F CFA</b>.</p>
+      <a class="btn big" href="{% url 'saisie_semaine' semaine|date:'Y-m-d' %}">{% if fiche_semaine.statut == "validee" %}Voir ma fiche{% else %}Modifier ma fiche{% endif %}</a>
     {% else %}
       <p>Vous n'avez pas encore rempli la fiche de cette semaine.</p>
       <a class="btn primary big" href="{% url 'saisie_semaine' semaine|date:'Y-m-d' %}">Remplir ma fiche</a>
@@ -22,7 +25,7 @@
   <div class="card histo">
     {% for h in historique %}
     <a href="{% url 'saisie_semaine' h.fiche.semaine|date:'Y-m-d' %}">
-      <span>Semaine du {{ h.fiche.semaine|date:"j M" }}<br><span class="muted small">{{ h.fiche.total_valeurs|nombre }} F CFA</span></span>
+      <span>Semaine du {{ h.fiche.semaine|date:"j M" }}<br><span class="muted small">{{ h.fiche.total_valeurs|nombre }} F CFA · {{ h.fiche.get_statut_display }}</span></span>
       {% pastille h.evo " F" %}
     </a>
     {% endfor %}

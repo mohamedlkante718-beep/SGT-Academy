@@ -1,9 +1,12 @@
 {% extends "base.html" %}
-{% block sous_titre %} · administration{% endblock %}
+{% block sous_titre %} · {% if est_admin %}administration{% else %}responsable de suivi{% endif %}{% endblock %}
 {% block menu %}
-<a href="{% url 'tableau' %}" {% if onglet == 'tableau' %}aria-current="page"{% endif %}>Tableau de bord</a>
+<a href="{% url 'tableau' %}" {% if onglet == 'tableau' %}aria-current="page"{% endif %}>{% if est_admin %}Tableau de bord{% else %}Mes producteurs{% endif %}</a>
+{% if est_admin %}
 <a href="{% url 'admin:producteurs_producteur_changelist' %}">Producteurs</a>
+<a href="{% url 'admin:producteurs_responsable_changelist' %}">Responsables</a>
 <a href="{% url 'admin:producteurs_secteur_changelist' %}">Secteurs et produits</a>
 <a href="{% url 'admin:producteurs_fiche_changelist' %}">Fiches, dépenses et ventes</a>
 <a href="{% url 'admin:producteurs_pret_changelist' %}">Prêts</a>
+{% endif %}
 {% endblock %}

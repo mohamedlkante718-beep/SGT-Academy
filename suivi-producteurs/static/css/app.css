@@ -65,6 +65,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-vi
 .kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .kpi .val { font-family: var(--font-num); font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 .kpi .val small { font-size: 0.75rem; color: var(--muted); }
+.kpi .pill { align-self: flex-start; }
 
 .tablebox { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
 table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
@@ -93,6 +94,11 @@ td a { font-weight: 600; text-decoration: none; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 20px; }
 
 /* ---- mobile : cartes de saisie ---- */
+.produit { display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+.produit:last-child { border-bottom: 0; padding-bottom: 0; }
+.produit .nom { font-weight: 700; font-size: 1.05rem; }
+.saisies { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.saisies .prec { font-size: 0.85rem; color: var(--muted); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
 .ligne { display: grid; grid-template-columns: 1fr 110px; gap: 8px; align-items: end; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .ligne:last-of-type { border-bottom: 0; padding-bottom: 0; }

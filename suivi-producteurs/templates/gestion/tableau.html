@@ -3,8 +3,16 @@
 {% block titre %}Tableau de bord{% endblock %}
 {% block contenu %}
 {% if vide %}
-  <div class="notice">Aucune fiche n'a encore été saisie. Ajoutez des producteurs dans l'onglet <b>Producteurs</b> : ils pourront remplir leur fiche depuis leur téléphone.</div>
+  <div class="notice">Aucune fiche n'a encore été saisie.{% if est_admin %} Ajoutez des producteurs dans l'onglet <b>Producteurs</b> et attribuez-leur leurs produits : ils pourront remplir leur fiche depuis leur téléphone.{% else %} Les fiches de vos producteurs apparaîtront ici dès qu'ils les auront envoyées.{% endif %}</div>
 {% else %}
+{% if a_valider %}
+<section class="section">
+  <h2>{{ a_valider|length }} fiche{{ a_valider|length|pluralize }} à valider</h2>
+  <div class="tablebox"><table><tbody>
+    {% for f in a_valider %}<tr><td><a href="{% url 'fiche_producteur' f.producteur_id %}?semaine={{ f.semaine|date:'Y-m-d' }}">{{ f.producteur.nom }}</a></td><td>Semaine du {{ f.semaine|date:"j F" }}</td><td>Envoyée le {{ f.modifie_le|date:"j M à H:i" }}</td><td><a class="btn" href="{% url 'fiche_producteur' f.producteur_id %}?semaine={{ f.semaine|date:'Y-m-d' }}">Voir et valider</a></td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endif %}
 <section class="section">
   <div class="row between">
     <h1>Situation de la semaine du {{ semaine|date:"j F" }} au {{ fin|date:"j F Y" }}</h1>
@@ -24,35 +32,39 @@
   <p class="muted small">{{ nb_saisies }} fiche{{ nb_saisies|pluralize }} reçue{{ nb_saisies|pluralize }} sur {{ lignes|length }} producteurs{% if secteur %} du secteur {{ secteur.nom }}{% endif %}. La valeur précédente est celle de la dernière fiche avant cette semaine.</p>
   <div class="kpis">
     <div class="kpi"><span class="label">Valeur totale des productions</span><span class="val">{{ tot.actuel|nombre }} <small>F CFA</small></span>{% pastille tot.evo " F" %}</div>
+    {% if est_admin %}
     <div class="kpi"><span class="label">Dépenses de la semaine</span><span class="val">{{ tot.depenses|nombre }} <small>F CFA</small></span></div>
     <div class="kpi"><span class="label">Ventes de la semaine</span><span class="val">{{ tot.ventes|nombre }} <small>F CFA</small></span></div>
     <div class="kpi"><span class="label">Résultat net</span><span class="val {% if tot.resultat < 0 %}neg{% endif %}">{{ tot.resultat|nombre }} <small>F CFA</small></span><span class="muted small">Ventes − dépenses</span></div>
     <div class="kpi"><span class="label">Prêts en cours</span><span class="val">{{ tot.prets|nombre }} <small>F CFA</small></span><span class="muted small">Prêts accordés − remboursements</span></div>
+    {% endif %}
   </div>
 </section>
 <section class="section">
   <h2>Récapitulatif par producteur</h2>
   <div class="tablebox"><table>
-    <thead><tr><th>Producteur</th><th class="num">Valeur précédente</th><th class="num">Valeur actuelle</th><th>Évolution</th><th class="num">Dépenses</th><th class="num">Ventes</th><th class="num">Résultat net</th><th class="num">Prêts en cours</th></tr></thead>
+    <thead><tr><th>Producteur</th><th>Fiche</th><th class="num">Valeur précédente</th><th class="num">Valeur actuelle</th><th>Évolution</th>{% if est_admin %}<th class="num">Dépenses</th><th class="num">Ventes</th><th class="num">Résultat net</th><th class="num">Prêts en cours</th>{% endif %}</tr></thead>
     <tbody>
     {% for l in lignes %}
       <tr>
         <td><a href="{% url 'fiche_producteur' l.producteur.pk %}?semaine={{ semaine|date:'Y-m-d' }}">{{ l.producteur.nom }}</a>
-          {% for s in l.producteur.secteurs.all %}<span class="tag">{{ s.nom }}</span> {% endfor %}
-          {% if not l.fiche %}<span class="tag">non reçue</span>{% endif %}</td>
+</td>
+        <td>{% statut l.fiche %}</td>
         <td class="num">{{ l.precedent|nombre }}</td>
         <td class="num">{{ l.actuel|nombre }}</td>
         <td>{% pastille l.evo " F" %}</td>
+        {% if est_admin %}
         <td class="num">{{ l.depenses|nombre }}</td>
         <td class="num">{{ l.ventes|nombre }}</td>
         <td class="num {% if l.resultat < 0 %}neg{% endif %}">{{ l.resultat|nombre }}</td>
         <td class="num">{{ l.prets|nombre }}</td>
+        {% endif %}
       </tr>
     {% endfor %}
     </tbody>
-    <tfoot><tr><td>Total</td><td class="num">{% if tot.a_precedent %}{{ tot.precedent|nombre }}{% else %}—{% endif %}</td><td class="num">{{ tot.actuel|nombre }}</td><td>{% pastille tot.evo " F" %}</td><td class="num">{{ tot.depenses|nombre }}</td><td class="num">{{ tot.ventes|nombre }}</td><td class="num">{{ tot.resultat|nombre }}</td><td class="num">{{ tot.prets|nombre }}</td></tr></tfoot>
+    <tfoot><tr><td>Total</td><td></td><td class="num">{% if tot.a_precedent %}{{ tot.precedent|nombre }}{% else %}—{% endif %}</td><td class="num">{{ tot.actuel|nombre }}</td><td>{% pastille tot.evo " F" %}</td>{% if est_admin %}<td class="num">{{ tot.depenses|nombre }}</td><td class="num">{{ tot.ventes|nombre }}</td><td class="num">{{ tot.resultat|nombre }}</td><td class="num">{{ tot.prets|nombre }}</td>{% endif %}</tr></tfoot>
   </table></div>
-  <p class="muted small">Montants en F CFA. Cliquez sur un nom pour voir sa fiche détaillée. Les dépenses et ventes se saisissent dans « Fiches, dépenses et ventes », les prêts dans « Prêts ».</p>
+  <p class="muted small">Montants en F CFA. Cliquez sur un nom pour voir sa fiche détaillée{% if not est_admin %} et la valider{% endif %}.{% if est_admin %} Les dépenses et ventes se saisissent dans « Fiches, dépenses et ventes », les prêts dans « Prêts ».{% endif %}</p>
 </section>
 <section class="section">
   <h2>Évolution de la valeur totale, semaine par semaine</h2>
@@ -70,6 +82,6 @@
   {% endif %}
   </div>
 </section>
-<p class="muted small">Pour ajouter un secteur (maraîchage, pisciculture…) ou de nouveaux produits : <a href="{% url 'admin:producteurs_secteur_changelist' %}">Secteurs et produits</a>.</p>
+{% if est_admin %}<p class="muted small">Pour ajouter un secteur (maraîchage, pisciculture…) ou de nouveaux produits : <a href="{% url 'admin:producteurs_secteur_changelist' %}">Secteurs et produits</a>.</p>{% endif %}
 {% endif %}
 {% endblock %}

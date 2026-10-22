@@ -25,6 +25,10 @@ class Produit(models.Model):
     secteur = models.ForeignKey(Secteur, on_delete=models.CASCADE, related_name="produits")
     nom = models.CharField(max_length=80)
     unite = models.CharField("unité", max_length=30, blank=True, help_text="Ex. têtes, œufs, kg, sacs, hectares.")
+    compter = models.BooleanField("se compte", default=True,
+                                  help_text="Le producteur saisit une quantité (nombre, kg…).")
+    valoriser = models.BooleanField("a une valeur", default=True,
+                                    help_text="Le producteur saisit une valeur en F CFA.")
     ordre = models.PositiveIntegerField("ordre d'affichage", default=0)
     actif = models.BooleanField(default=True)
 
@@ -36,12 +40,31 @@ class Produit(models.Model):
         return f"{self.nom} ({self.unite})" if self.unite else self.nom
 
 
+class Responsable(models.Model):
+    """Responsable de suivi : consulte et valide les fiches de ses producteurs, sans les modifier."""
+
+    nom = models.CharField("nom et prénom", max_length=120)
+    telephone = models.CharField("téléphone", max_length=20, unique=True,
+                                 help_text="Sert d'identifiant de connexion.")
+    actif = models.BooleanField(default=True)
+    utilisateur = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+                                       null=True, blank=True, related_name="responsable", editable=False)
+
+    class Meta:
+        ordering = ["nom"]
+
+    def __str__(self):
+        return self.nom
+
+
 class Producteur(models.Model):
     nom = models.CharField("nom et prénom", max_length=120)
     telephone = models.CharField("téléphone", max_length=20, unique=True,
                                  help_text="Sert d'identifiant de connexion sur le téléphone.")
-    secteurs = models.ManyToManyField(Secteur, related_name="producteurs", blank=True,
-                                      help_text="Le producteur verra les produits de ces secteurs sur son téléphone.")
+    produits = models.ManyToManyField(Produit, related_name="producteurs", blank=True,
+                                      help_text="Les seuls produits que le producteur remplit sur son téléphone.")
+    responsable = models.ForeignKey(Responsable, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="producteurs", help_text="Valide les fiches de ce producteur.")
     actif = models.BooleanField(default=True)
     ordre = models.PositiveIntegerField("ordre d'affichage", default=0)
     utilisateur = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
@@ -54,8 +77,11 @@ class Producteur(models.Model):
     def __str__(self):
         return self.nom
 
-    def produits_proposes(self):
-        return Produit.objects.filter(secteur__in=self.secteurs.all(), actif=True, secteur__actif=True).select_related("secteur")
+    def produits_attribues(self):
+        return self.produits.filter(actif=True, secteur__actif=True).select_related("secteur")
+
+    def secteurs(self):
+        return Secteur.objects.filter(produits__producteurs=self).distinct()
 
     def fiche_precedente(self, semaine):
         return self.fiches.filter(semaine__lt=semaine).order_by("-semaine").first()
@@ -75,6 +101,14 @@ class Fiche(models.Model):
     producteur = models.ForeignKey(Producteur, on_delete=models.CASCADE, related_name="fiches")
     semaine = models.DateField("semaine du")
     observations = models.TextField(blank=True)
+
+    SOUMISE, VALIDEE, A_CORRIGER = "soumise", "validee", "a_corriger"
+    STATUTS = [(SOUMISE, "À valider"), (VALIDEE, "Validée"), (A_CORRIGER, "À corriger")]
+    statut = models.CharField(max_length=12, choices=STATUTS, default=SOUMISE)
+    commentaire = models.TextField("commentaire du responsable", blank=True)
+    valide_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name="+", editable=False)
+    valide_le = models.DateTimeField(null=True, blank=True, editable=False)
     saisie_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
                                    blank=True, editable=False)
     cree_le = models.DateTimeField(auto_now_add=True)
@@ -110,6 +144,7 @@ class Fiche(models.Model):
 
 class LigneEffectif(models.Model):
     fiche = models.ForeignKey(Fiche, on_delete=models.CASCADE, related_name="effectifs")
+    produit = models.ForeignKey(Produit, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     libelle = models.CharField("élément", max_length=80)
     quantite = models.PositiveIntegerField("nombre")
 
@@ -123,6 +158,7 @@ class LigneEffectif(models.Model):
 
 class LigneValeur(models.Model):
     fiche = models.ForeignKey(Fiche, on_delete=models.CASCADE, related_name="valeurs")
+    produit = models.ForeignKey(Produit, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     libelle = models.CharField("élément", max_length=80)
     montant = models.PositiveIntegerField("valeur (F CFA)")
 

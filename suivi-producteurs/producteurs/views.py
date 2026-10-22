@@ -1,19 +1,22 @@
 import csv
 from datetime import date, timedelta
+from functools import wraps
 
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import redirect_to_login
 from django.db import transaction
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
-from .forms import ConnexionForm, FicheForm, formsets
-from .models import Fiche, Producteur, Secteur
-from .services import comparer_lignes, debut_semaine, evolution, recapitulatif
+from .forms import ConnexionForm, ValidationForm
+from .models import Fiche, LigneEffectif, LigneValeur, Producteur, Responsable, Secteur
+from .services import cle, comparer_lignes, debut_semaine, evolution, recapitulatif
 
 
 class ConnexionView(auth_views.LoginView):
@@ -29,17 +32,37 @@ def _date_ou_404(texte):
         raise Http404("Date invalide")
 
 
-# ---------------------------------------------------------------- mobile (producteurs)
+def _responsable(user):
+    r = getattr(user, "responsable", None)
+    return r if r and r.actif else None
+
+
+def suivi_requis(vue):
+    """Réservé à l'administrateur (tout) et aux responsables (leurs producteurs, en lecture + validation)."""
+    @wraps(vue)
+    def enveloppe(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path())
+        if request.user.is_staff:
+            request.est_admin, request.producteurs_visibles = True, Producteur.objects.all()
+        elif _responsable(request.user):
+            r = _responsable(request.user)
+            request.est_admin, request.producteurs_visibles = False, r.producteurs.all()
+        else:
+            return redirect("accueil")
+        return vue(request, *args, **kwargs)
+    return enveloppe
+
 
 @login_required
 def accueil(request):
-    if request.user.is_staff:
+    if request.user.is_staff or _responsable(request.user):
         return redirect("tableau")
     producteur = getattr(request.user, "producteur", None)
     if producteur is None:
         return render(request, "mobile/sans_producteur.html")
     semaine = debut_semaine()
-    fiches = list(producteur.fiches.prefetch_related("valeurs", "depenses", "ventes")[:12])
+    fiches = list(producteur.fiches.prefetch_related("valeurs")[:12])
     historique = []
     for i, f in enumerate(fiches):
         prec = fiches[i + 1] if i + 1 < len(fiches) else producteur.fiche_precedente(f.semaine)
@@ -49,8 +72,31 @@ def accueil(request):
         "semaine": semaine,
         "fin": semaine + timedelta(days=6),
         "fiche_semaine": producteur.fiches.filter(semaine=semaine).first(),
+        "a_corriger": producteur.fiches.filter(statut=Fiche.A_CORRIGER),
         "historique": historique,
     })
+
+
+# ---------------------------------------------------------------- mobile (producteurs)
+
+def _ligne_de(lignes, produit):
+    """Ligne d'une fiche correspondant à un produit (par lien, sinon par libellé pour l'historique)."""
+    for l in lignes:
+        if l.produit_id == produit.pk:
+            return l
+    for l in lignes:
+        if l.produit_id is None and cle(l.libelle) == cle(produit.nom):
+            return l
+    return None
+
+
+def _entier(texte):
+    texte = (texte or "").replace(" ", "").replace(" ", "").strip()
+    if texte == "":
+        return None
+    if not texte.isdigit():
+        raise ValueError
+    return int(texte)
 
 
 @never_cache
@@ -58,10 +104,7 @@ def accueil(request):
 def saisie(request, semaine=None):
     producteur = getattr(request.user, "producteur", None)
     if producteur is None:
-        if request.user.is_staff:
-            messages.info(request, "Les administrateurs modifient les fiches depuis l'administration.")
-            return redirect("admin:producteurs_fiche_changelist")
-        return render(request, "mobile/sans_producteur.html")
+        return redirect("accueil")
 
     semaine = debut_semaine(_date_ou_404(semaine) if semaine else None)
     if semaine > debut_semaine() + timedelta(days=7):
@@ -69,100 +112,118 @@ def saisie(request, semaine=None):
         return redirect("accueil")
     fiche = producteur.fiches.filter(semaine=semaine).first()
     precedente = producteur.fiche_precedente(semaine)
-    nouvelle = fiche is None
-    if nouvelle:
-        fiche = Fiche(producteur=producteur, semaine=semaine)
+    verrouillee = bool(fiche and fiche.statut == Fiche.VALIDEE)
 
-    # Une nouvelle fiche reprend les éléments de la fiche précédente : il ne reste qu'à mettre les chiffres.
-    init_eff = [{"libelle": l.libelle} for l in precedente.effectifs.all()] if (nouvelle and precedente) else []
-    init_val = [{"libelle": l.libelle} for l in precedente.valeurs.all()] if (nouvelle and precedente) else []
-    fabriques = formsets(extra_effectifs=len(init_eff) or (1 if nouvelle else 0),
-                         extra_valeurs=len(init_val) or (1 if nouvelle else 0))
-    initials = {"effectifs": init_eff, "valeurs": init_val}
+    eff = list(fiche.effectifs.all()) if fiche else []
+    val = list(fiche.valeurs.all()) if fiche else []
+    peff = list(precedente.effectifs.all()) if precedente else []
+    pval = list(precedente.valeurs.all()) if precedente else []
 
-    data = request.POST if request.method == "POST" else None
-    form = FicheForm(data, instance=fiche)
-    jeux = {nom: fab(data, instance=fiche, prefix=nom, initial=initials[nom] or None)
-            for nom, fab in fabriques.items()}
+    produits = list(producteur.produits_attribues())
+    lignes, erreurs = [], {}
+    for p in produits:
+        le, lv, pe, pv = _ligne_de(eff, p), _ligne_de(val, p), _ligne_de(peff, p), _ligne_de(pval, p)
+        ligne = {"produit": p,
+                 "q": le.quantite if le else None, "v": lv.montant if lv else None,
+                 "pq": pe.quantite if pe else None, "pv": pv.montant if pv else None,
+                 "q_brut": None, "v_brut": None}
+        if request.method == "POST" and not verrouillee:
+            for champ, actif in (("q", p.compter), ("v", p.valoriser)):
+                brut = request.POST.get(f"{champ}_{p.pk}", "")
+                ligne[champ + "_brut"] = brut
+                if not actif:
+                    continue
+                try:
+                    ligne[champ] = _entier(brut)
+                except ValueError:
+                    erreurs[f"{champ}_{p.pk}"] = "Nombre entier uniquement"
+                    ligne[champ] = None
+        ligne["erreur_q"], ligne["erreur_v"] = erreurs.get(f"q_{p.pk}"), erreurs.get(f"v_{p.pk}")
+        lignes.append(ligne)
 
-    if request.method == "POST" and form.is_valid() and all(j.is_valid() for j in jeux.values()):
+    if request.method == "POST" and not verrouillee and not erreurs:
         with transaction.atomic():
-            fiche = form.save(commit=False)
-            fiche.saisie_par = request.user
+            if fiche is None:
+                fiche = Fiche(producteur=producteur, semaine=semaine)
+            fiche.observations = request.POST.get("observations", "").strip()
+            fiche.statut, fiche.saisie_par = Fiche.SOUMISE, request.user
             fiche.save()
-            for j in jeux.values():
-                j.instance = fiche
-                j.save()
-        messages.success(request, f"Fiche de la semaine du {fiche.semaine:%d/%m} enregistrée.")
+            for l in lignes:
+                p = l["produit"]
+                for modele, liste, champ, attr in ((LigneEffectif, eff, "q", "quantite"), (LigneValeur, val, "v", "montant")):
+                    ancienne = _ligne_de(liste, p)
+                    if ancienne:
+                        ancienne.delete()
+                    if l[champ] is not None:
+                        modele.objects.create(fiche=fiche, produit=p, libelle=p.nom, **{attr: l[champ]})
+        messages.success(request, f"Fiche de la semaine du {fiche.semaine:%d/%m} envoyée à votre responsable.")
         return redirect("accueil")
+    if erreurs:
+        messages.error(request, "Certaines cases contiennent autre chose qu'un nombre. Corrigez-les puis enregistrez.")
 
-    # Produits proposés, regroupés par secteur, pour la liste « Ajouter un produit ».
-    groupes, unites = {}, {}
-    for pr in producteur.produits_proposes():
-        groupes.setdefault(pr.secteur.nom, []).append(pr)
-        unites[pr.nom] = pr.unite
-    prec_eff = {l.libelle: l.quantite for l in precedente.effectifs.all()} if precedente else {}
-    prec_val = {l.libelle: l.montant for l in precedente.valeurs.all()} if precedente else {}
+    groupes = {}
+    for l in lignes:
+        groupes.setdefault(l["produit"].secteur.nom, []).append(l)
     return render(request, "mobile/saisie.html", {
         "producteur": producteur,
         "fiche": fiche,
-        "nouvelle": nouvelle,
+        "verrouillee": verrouillee,
         "semaine": semaine,
         "fin": semaine + timedelta(days=6),
         "precedente": precedente,
-        "prec_eff": prec_eff,
-        "prec_val": prec_val,
-        "form": form,
-        "jeux": jeux,
         "groupes": groupes,
-        "unites": unites,
+        "observations": request.POST.get("observations") if request.method == "POST" else (fiche.observations if fiche else ""),
         "semaine_precedente": semaine - timedelta(days=7),
         "semaine_suivante": semaine + timedelta(days=7) if semaine < debut_semaine() else None,
     })
 
 
-# ---------------------------------------------------------------- web (administrateur)
+# ---------------------------------------------------------------- web (administrateur et responsables)
 
-def _semaines():
-    return list(Fiche.objects.order_by("-semaine").values_list("semaine", flat=True).distinct())
-
-
-@staff_member_required
+@suivi_requis
 def tableau(request):
-    semaines = _semaines()
+    visibles = request.producteurs_visibles
+    semaines = list(Fiche.objects.filter(producteur__in=visibles).order_by("-semaine")
+                    .values_list("semaine", flat=True).distinct())
+    base = {"onglet": "tableau", "est_admin": request.est_admin}
     if not semaines:
-        return render(request, "gestion/tableau.html", {"vide": True})
+        return render(request, "gestion/tableau.html", {**base, "vide": True})
     choix = request.GET.get("semaine")
     semaine = date.fromisoformat(choix) if choix and choix in {s.isoformat() for s in semaines} else semaines[0]
-    producteurs = Producteur.objects.filter(actif=True).prefetch_related("secteurs")
-    secteurs = Secteur.objects.filter(actif=True)
+    producteurs = visibles.filter(actif=True)
+    secteurs = Secteur.objects.filter(actif=True, produits__producteurs__in=producteurs).distinct()
     secteur = secteurs.filter(pk=request.GET.get("secteur")).first() if (request.GET.get("secteur") or "").isdigit() else None
     if secteur:
-        producteurs = producteurs.filter(secteurs=secteur)
+        producteurs = producteurs.filter(produits__secteur=secteur).distinct()
     lignes, tot = recapitulatif(semaine, producteurs)
+    a_valider = Fiche.objects.filter(producteur__in=visibles, statut=Fiche.SOUMISE).select_related("producteur")
 
     if request.GET.get("format") == "csv":
         rep = HttpResponse(content_type="text/csv; charset=utf-8")
         rep["Content-Disposition"] = f'attachment; filename="recapitulatif-ciaf-{semaine}.csv"'
         rep.write("﻿")
         w = csv.writer(rep, delimiter=";")
-        w.writerow(["Producteur", "Valeur précédente", "Valeur actuelle", "Évolution", "Dépenses", "Ventes",
-                    "Résultat net", "Prêts en cours"])
+        entete = ["Producteur", "Statut", "Valeur précédente", "Valeur actuelle", "Évolution"]
+        if request.est_admin:
+            entete += ["Dépenses", "Ventes", "Résultat net", "Prêts en cours"]
+        w.writerow(entete)
+        vide = lambda v: "" if v is None else v
         for l in lignes:
             ecart = l["evo"]["ecart"] if l["evo"] else None
-            w.writerow([l["producteur"].nom, l["precedent"] if l["precedent"] is not None else "",
-                        l["actuel"] if l["actuel"] is not None else "", ecart if ecart is not None else "",
-                        l["depenses"] if l["depenses"] is not None else "",
-                        l["ventes"] if l["ventes"] is not None else "",
-                        l["resultat"] if l["resultat"] is not None else "", l["prets"]])
+            ligne = [l["producteur"].nom, l["fiche"].get_statut_display() if l["fiche"] else "Non reçue",
+                     vide(l["precedent"]), vide(l["actuel"]), vide(ecart)]
+            if request.est_admin:
+                ligne += [vide(l["depenses"]), vide(l["ventes"]), vide(l["resultat"]), l["prets"]]
+            w.writerow(ligne)
         return rep
 
-    # Courbe de la valeur totale, semaine par semaine (12 dernières semaines).
     points = []
     for s in reversed(semaines[:12]):
-        total = sum(f.total_valeurs for f in Fiche.objects.filter(semaine=s, producteur__in=producteurs).prefetch_related("valeurs"))
+        total = sum(f.total_valeurs for f in Fiche.objects.filter(semaine=s, producteur__in=producteurs)
+                    .prefetch_related("valeurs"))
         points.append({"semaine": s, "total": total})
     return render(request, "gestion/tableau.html", {
+        **base,
         "semaine": semaine,
         "fin": semaine + timedelta(days=6),
         "semaines": [(s, s + timedelta(days=6)) for s in semaines],
@@ -170,14 +231,14 @@ def tableau(request):
         "tot": tot,
         "nb_saisies": sum(1 for l in lignes if l["fiche"]),
         "courbe": _courbe(points),
-        "onglet": "tableau",
         "secteurs": secteurs,
         "secteur": secteur,
+        "a_valider": a_valider,
     })
 
 
 def _courbe(points):
-    """Coordonnées SVG de la courbe ; None s'il y a moins de deux semaines."""
+    """Coordonnées SVG de la courbe ; un seul point s'il n'y a qu'une semaine."""
     if len(points) < 2:
         return {"seul": points[0] if points else None}
     W, H, L, R, T, B = 760, 240, 70, 20, 16, 34
@@ -191,20 +252,36 @@ def _courbe(points):
             "aire": f"{chemin} L{pts[-1]['x']},{y(0)} L{pts[0]['x']},{y(0)} Z", "graduations": graduations}
 
 
-@staff_member_required
+@suivi_requis
 def fiche_producteur(request, pk):
-    producteur = get_object_or_404(Producteur, pk=pk)
+    producteur = get_object_or_404(request.producteurs_visibles, pk=pk)
     semaines = list(producteur.fiches.values_list("semaine", flat=True))
-    choix = request.GET.get("semaine")
+    choix = request.GET.get("semaine") or request.POST.get("semaine")
     semaine = date.fromisoformat(choix) if choix and choix in {s.isoformat() for s in semaines} else (
         semaines[0] if semaines else None)
     fiche = producteur.fiches.filter(semaine=semaine).first() if semaine else None
+
+    validation = ValidationForm(request.POST or None)
+    if request.method == "POST" and fiche:
+        if validation.is_valid():
+            valider = validation.cleaned_data["decision"] == "valider"
+            fiche.statut = Fiche.VALIDEE if valider else Fiche.A_CORRIGER
+            fiche.commentaire = validation.cleaned_data["commentaire"].strip()
+            fiche.valide_par, fiche.valide_le = request.user, timezone.now()
+            fiche.save(update_fields=["statut", "commentaire", "valide_par", "valide_le", "modifie_le"])
+            messages.success(request, f"Fiche de {producteur.nom} {'validée' if valider else 'renvoyée pour correction'}.")
+            suivante = Fiche.objects.filter(producteur__in=request.producteurs_visibles, statut=Fiche.SOUMISE).first()
+            if suivante:
+                return redirect(f"{reverse('fiche_producteur', args=[suivante.producteur_id])}?semaine={suivante.semaine}")
+            return redirect("tableau")
+
     precedente = producteur.fiche_precedente(semaine) if semaine else None
     ctx = {"producteur": producteur, "semaines": [(s, s + timedelta(days=6)) for s in semaines],
-           "semaine": semaine, "fiche": fiche, "precedente": precedente,
-           "prets": producteur.prets.all()[:20],
-           "prets_en_cours": producteur.prets_en_cours(),
-           "tous": Producteur.objects.all()}
+           "semaine": semaine, "fiche": fiche, "precedente": precedente, "validation": validation,
+           "est_admin": request.est_admin,
+           "tous": request.producteurs_visibles}
+    if request.est_admin:
+        ctx.update({"prets": producteur.prets.all()[:20], "prets_en_cours": producteur.prets_en_cours()})
     if fiche:
         ctx.update({
             "effectifs": comparer_lignes(fiche.effectifs.all(), precedente.effectifs.all() if precedente else None, "quantite"),
@@ -218,8 +295,6 @@ def fiche_producteur(request, pk):
 # ---------------------------------------------------------------- application installable
 
 def manifest(request):
-    from django.http import JsonResponse
-    from django.templatetags.static import static
     return JsonResponse({
         "name": "Suivi producteurs CIAF",
         "short_name": "Suivi CIAF",
