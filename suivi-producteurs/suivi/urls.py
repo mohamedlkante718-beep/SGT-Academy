@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import path, re_path
+from django.views.static import serve
 
 from producteurs import views
 
@@ -19,3 +21,7 @@ urlpatterns = [
     path("sw.js", views.service_worker, name="service_worker"),
     path("admin/", admin.site.urls),
 ]
+
+# Sert les fichiers de style et les images directement depuis Django, au cas où le réglage
+# « Static files » de l'hébergeur n'est pas fait (sinon c'est l'hébergeur qui les sert, plus vite).
+urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.STATIC_ROOT})]
