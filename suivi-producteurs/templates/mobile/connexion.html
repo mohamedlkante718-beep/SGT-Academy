@@ -4,6 +4,7 @@
 {% block contenu %}
 <form method="post" class="card connexion">
   {% csrf_token %}
+  {% if logo %}<img class="logo-connexion" src="{{ logo }}" alt="Logo {{ sigle }}">{% endif %}
   <p class="surtitre">{{ sigle }}</p>
   <p class="organisation">{{ organisation }}</p>
   <h1>Connexion</h1>

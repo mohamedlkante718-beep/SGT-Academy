@@ -21,9 +21,24 @@ from .models import Fiche, LigneEffectif, LigneValeur, Producteur, Responsable, 
 from .services import cle, comparer_lignes, debut_semaine, evolution, recapitulatif
 
 
+def _logo():
+    """Adresse du logo : celui envoyé dans l'administration (rubrique « Logo »), sinon un fichier
+    static/logo.png ou static/logo.jpg déposé à la main, sinon None."""
+    from django.contrib.staticfiles import finders
+    from django.templatetags.static import static
+    from .models import Parametres
+    p = Parametres.objects.first()
+    if p and p.logo:
+        return p.logo.url
+    for nom in ("logo.png", "logo.jpg", "logo.jpeg"):
+        if finders.find(nom) or (settings.STATIC_ROOT / nom).exists():
+            return static(nom)
+    return None
+
+
 def organisation(request):
-    """Nom de la structure pour tous les gabarits."""
-    return {"sigle": settings.ORGANISATION_SIGLE, "organisation": settings.ORGANISATION_NOM}
+    """Nom et logo de la structure pour tous les gabarits."""
+    return {"sigle": settings.ORGANISATION_SIGLE, "organisation": settings.ORGANISATION_NOM, "logo": _logo()}
 
 
 class ConnexionView(auth_views.LoginView):

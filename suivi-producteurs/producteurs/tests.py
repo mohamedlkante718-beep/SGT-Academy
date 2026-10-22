@@ -361,3 +361,42 @@ class PagesGestionTests(TestCase):
         Responsable.objects.create(nom="R", telephone="76000200", utilisateur=compte("76000200"))
         self.client.login(username="76000200", password="1234")
         self.assertRedirects(self.client.get(reverse("producteurs")), reverse("tableau"))
+
+
+class LogoTests(TestCase):
+    def setUp(self):
+        import tempfile
+        from django.test import override_settings
+        self.dossier = tempfile.mkdtemp()
+        self.reglage = override_settings(MEDIA_ROOT=self.dossier)
+        self.reglage.enable()
+        get_user_model().objects.create_superuser("chef", password="secret-123")
+        self.client.login(username="chef", password="secret-123")
+
+    def tearDown(self):
+        import shutil
+        self.reglage.disable()
+        shutil.rmtree(self.dossier, ignore_errors=True)
+
+    def test_envoyer_le_logo_depuis_l_administration(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from .models import Parametres
+        self.assertNotContains(self.client.get(reverse("tableau")), 'class="logo"')
+        image = SimpleUploadedFile("logo-ciaf.png", b"\x89PNG\r\n\x1a\n" + b"0" * 100, content_type="image/png")
+        r = self.client.post(reverse("admin:producteurs_parametres_add"), {"logo": image})
+        self.assertEqual(r.status_code, 302)
+        url = Parametres.objects.get().logo.url
+        self.assertContains(self.client.get(reverse("tableau")), f'<img class="logo" src="{url}"')
+        self.client.logout()
+        self.assertContains(self.client.get(reverse("connexion")), 'class="logo-connexion"')
+        self.assertEqual(self.client.get(url).status_code, 200)
+        # Une seule ligne de réglages : pas de deuxième « Ajouter ».
+        self.client.login(username="chef", password="secret-123")
+        self.assertEqual(self.client.get(reverse("admin:producteurs_parametres_add")).status_code, 403)
+
+    def test_fichier_refuse(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        r = self.client.post(reverse("admin:producteurs_parametres_add"),
+                             {"logo": SimpleUploadedFile("virus.exe", b"MZ", content_type="application/octet-stream")})
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "extension")

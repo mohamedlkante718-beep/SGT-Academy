@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
 from django.db import models
 from django.db.models import Sum
 
@@ -232,3 +233,20 @@ class Pret(models.Model):
         ordering = ["-date", "-id"]
         verbose_name = "prêt / remboursement"
         verbose_name_plural = "prêts et remboursements"
+
+
+class Parametres(models.Model):
+    """Réglages modifiables depuis l'administration (une seule ligne) : le logo de la structure."""
+
+    logo = models.FileField(
+        upload_to="logo/", blank=True,
+        validators=[FileExtensionValidator(["png", "jpg", "jpeg", "webp", "svg"])],
+        help_text="Image PNG ou JPG, de préférence carrée ou en largeur, fond transparent si possible. "
+                  "Elle s'affiche en haut des pages, sur la page de connexion et dans les rapports.")
+
+    class Meta:
+        verbose_name = "logo"
+        verbose_name_plural = "logo"
+
+    def __str__(self):
+        return "Logo de la structure"

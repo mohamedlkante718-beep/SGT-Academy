@@ -17,7 +17,8 @@
 </div>
 <main class="page">
   <header class="entete-rapport">
-    <div>
+    {% if logo %}<img class="logo-rapport" src="{{ logo }}" alt="Logo {{ sigle }}">{% endif %}
+    <div class="entete-titre">
       <p class="surtitre">{{ sigle }} · {{ organisation }}</p>
       <h1>Suivi des producteurs — {{ titre }}</h1>
       <p class="muted">Semaines commençant du {{ debut|date:"j F Y" }} au {{ fin|date:"j F Y" }}{% if secteur %} · Secteur : {{ secteur.nom }}{% endif %}</p>

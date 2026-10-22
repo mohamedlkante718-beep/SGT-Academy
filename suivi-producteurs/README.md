@@ -111,6 +111,9 @@ puis remplissez les lignes « Dépenses » et « Ventes » en bas de la page.
 **Prêts** : dans **Prêts**, ajoutez chaque prêt ou avance accordé et chaque remboursement reçu.
 Le tableau de bord calcule le montant restant dû.
 
+**Logo** : dans `/admin/`, rubrique **Logo**, cliquez sur **Ajouter**, choisissez l'image (PNG ou JPG), puis **Enregistrer**.
+Il s'affiche en haut des pages, sur la page de connexion et dans le rapport imprimable. Pour le changer, ouvrez la même rubrique.
+
 **Rapports** (menu **Rapports**, pour l'administrateur et les responsables, chacun sur ses producteurs) :
 choisissez une période (ce mois-ci, le mois dernier, ce trimestre, cette année ou des dates libres) et, si besoin, un secteur.
 Le rapport donne pour chaque producteur la valeur au début et à la fin de la période, l'évolution, les dépenses, les ventes,
@@ -127,7 +130,7 @@ Le tableau de bord garde l'export CSV de la semaine et un lien direct vers le ra
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_fiches_excel && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 33 tests
+python manage.py test producteurs   # 35 tests
 ```
 
 ## À venir

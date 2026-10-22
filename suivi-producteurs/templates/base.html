@@ -15,7 +15,7 @@
 </head>
 <body class="{% block corps %}{% endblock %}">
 <header class="top"><div class="wrap">
-  <a class="brand" href="{% url 'accueil' %}"><b>Suivi des producteurs</b><span><abbr title="{{ organisation }}">{{ sigle }}</abbr>{% block sous_titre %}{% endblock %}</span></a>
+  <a class="brand{% if logo %} avec-logo{% endif %}" href="{% url 'accueil' %}">{% if logo %}<img class="logo" src="{{ logo }}" alt="Logo {{ sigle }}">{% endif %}<span class="brand-texte"><b>Suivi des producteurs</b><span><abbr title="{{ organisation }}">{{ sigle }}</abbr>{% block sous_titre %}{% endblock %}</span></span></a>
   {% if user.is_authenticated %}
   <nav class="tabs" aria-label="Menu">
     {% block menu %}{% endblock %}

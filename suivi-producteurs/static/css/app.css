@@ -140,3 +140,10 @@ label.case input, .saisie-table input[type="checkbox"] { width: auto; }
 .ligne-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; max-width: none; }
 .btn.danger { color: var(--down); }
 .row form { margin: 0; }
+
+/* ---- logo (affiché seulement si static/logo.png existe) ---- */
+.brand.avec-logo { flex-direction: row; align-items: center; gap: 10px; }
+.brand .brand-texte { display: flex; flex-direction: column; min-width: 0; color: var(--ink); font-size: 1rem; }
+.brand .brand-texte > span { color: var(--muted); font-size: .85rem; }
+.brand .logo { height: 44px; width: auto; max-width: 120px; object-fit: contain; }
+.logo-connexion { height: 90px; width: auto; max-width: 70%; object-fit: contain; align-self: center; }

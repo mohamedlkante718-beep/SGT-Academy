@@ -35,4 +35,7 @@ urlpatterns = [
 
 # Sert les fichiers de style et les images directement depuis Django, au cas où le réglage
 # « Static files » de l'hébergeur n'est pas fait (sinon c'est l'hébergeur qui les sert, plus vite).
-urlpatterns += [re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.STATIC_ROOT})]
+urlpatterns += [
+    re_path(r"^static/(?P<path>.*)$", serve, {"document_root": settings.STATIC_ROOT}),
+    re_path(r"^media/(?P<path>.*)$", lambda request, path: serve(request, path, document_root=settings.MEDIA_ROOT)),
+]

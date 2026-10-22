@@ -4,12 +4,23 @@ from django.db import transaction
 
 from .forms import ProducteurAdminForm, ResponsableAdminForm, lier_compte
 from .models import (Depense, Fiche, LigneEffectif, LigneValeur, Pret, Producteur, Produit, Responsable,
-                     Secteur, Vente)
+                     Parametres, Secteur, Vente)
 
 admin.site.site_header = f"Suivi des producteurs — {settings.ORGANISATION_SIGLE}"
 admin.site.site_title = f"Suivi {settings.ORGANISATION_SIGLE}"
 admin.site.index_title = "Administration"
 admin.site.site_url = "/gestion/"
+
+
+@admin.register(Parametres)
+class ParametresAdmin(admin.ModelAdmin):
+    """Une seule ligne : on ajoute le logo, puis on le remplace ou on l'efface."""
+
+    def has_add_permission(self, request):
+        return not Parametres.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 class CompteTelephoneAdmin(admin.ModelAdmin):
