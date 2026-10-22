@@ -1,15 +1,33 @@
 #!/bin/bash
-# Installe ou met à jour l'application sur PythonAnywhere, dans une console Bash :
-#     bash ~/suivi-producteurs/installer_pythonanywhere.sh
-# Par défaut, le site est gageetudes.pythonanywhere.com (le nom du compte). Pour une autre adresse :
-#     bash ~/suivi-producteurs/installer_pythonanywhere.sh www.mon-domaine.org
+# Installe ou met à jour l'application sur PythonAnywhere, dans une console Bash.
+# Créez d'abord l'application web vide (onglet Web → Add a new web app), puis :
+#     bash ~/suivi-producteurs/installer_pythonanywhere.sh suivi.gage-etudes.org
+# Le script refuse de remplacer le fichier de démarrage d'un autre site déjà en service.
 set -e
 
-DOMAINE="${1:-$USER.pythonanywhere.com}"
+DOMAINE="$1"
+if [ -z "$DOMAINE" ]; then
+    echo "Indiquez l'adresse du site, par exemple :"
+    echo "    bash $0 suivi.gage-etudes.org"
+    exit 1
+fi
 DOSSIER="$(cd "$(dirname "$0")" && pwd)"
 VENV="$HOME/.virtualenvs/suivi"
 WSGI="${WSGI_DIR:-/var/www}/$(echo "$DOMAINE" | tr '.' '_' | tr 'A-Z' 'a-z')_wsgi.py"
 cd "$DOSSIER"
+
+# Sécurité : ne jamais écraser le fichier de démarrage d'un site existant (seulement le modèle vide
+# créé par PythonAnywhere, ou une installation précédente de cette application).
+if [ -f "$WSGI" ] && ! grep -q "suivi-producteurs" "$WSGI" && ! grep -qi "hello.world" "$WSGI" && [ "$FORCER" != "1" ]; then
+    echo "ARRÊT : $WSGI appartient déjà à un autre site, que ce script ne doit pas remplacer."
+    echo "Vérifiez l'adresse indiquée : il faut celle de la NOUVELLE application web créée pour le suivi."
+    exit 1
+fi
+if [ ! -f "$WSGI" ] && [ -z "$WSGI_DIR" ]; then
+    echo "ARRÊT : aucune application web « $DOMAINE » n'existe encore sur ce compte."
+    echo "Créez-la d'abord : onglet Web → Add a new web app → $DOMAINE → Manual configuration → Python 3.13."
+    exit 1
+fi
 
 echo "== 1/6 Environnement Python (quelques minutes la première fois)"
 [ -d "$VENV" ] || python3.13 -m venv "$VENV"
@@ -32,9 +50,8 @@ echo "== 5/6 Fichiers de style et images"
 "$PY" manage.py collectstatic --noinput -v0
 
 echo "== 6/6 Fichier de démarrage du site : $WSGI"
-if [ -f "$WSGI" ] && ! grep -q "suivi-producteurs" "$WSGI"; then
+if [ -f "$WSGI" ]; then
     cp "$WSGI" "$WSGI.sauvegarde-$(date +%Y%m%d-%H%M%S)"
-    echo "   L'ancien fichier a été sauvegardé à côté (.sauvegarde-…)."
 fi
 cat > "$WSGI" <<WSGIEOF
 # Suivi des producteurs CIAF — généré par installer_pythonanywhere.sh
@@ -68,13 +85,14 @@ fi
 cat <<FIN
 
 ============================================================
- Installation terminée. Il reste 4 réglages dans l'onglet « Web »
+ Installation terminée. Il reste quelques réglages dans l'onglet « Web »
  de PythonAnywhere, pour le site $DOMAINE :
 
   • Virtualenv          : $VENV
   • Source code         : $DOSSIER
   • Static files        : URL  /static/
                           Directory  $DOSSIER/staticfiles
+  • HTTPS certificate   : Let's Encrypt (pour une adresse en .org)
   • Force HTTPS         : Enabled
 
  Puis cliquez sur le gros bouton vert « Reload ».

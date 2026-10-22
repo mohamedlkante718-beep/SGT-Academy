@@ -25,22 +25,29 @@ On peut changer ce jour avec la variable `SEMAINE_JOUR_DEBUT`, où 0 = lundi.
 ## Mise en ligne sur PythonAnywhere (compte `gageetudes`)
 
 ### Méthode simple : fichier zip + script
-1. Onglet **Files** → **Upload a file** → envoyez `suivi-producteurs.zip` dans `/home/gageetudes/`.
-2. Onglet **Consoles** → **Bash**, puis tapez :
+
+L'application a sa propre adresse, **suivi.gage-etudes.org**. Elle ne touche ni à `www.gage-etudes.org` ni à
+`gageetudes.pythonanywhere.com`.
+
+1. **Créer l'application web vide** : onglet **Web** → **Add a new web app** → domaine `suivi.gage-etudes.org`
+   → **Manual configuration** → **Python 3.13**.
+2. **Relier l'adresse** : chez le fournisseur du nom de domaine `gage-etudes.org`, ajoutez un enregistrement
+   **CNAME** `suivi` → l'adresse `webapp-…….pythonanywhere.com` affichée dans l'onglet Web, section **DNS setup**.
+3. **Envoyer le code** : onglet **Files** → **Upload a file** → `suivi-producteurs.zip` dans `/home/gageetudes/`.
+4. **Installer** : onglet **Consoles** → **Bash**, puis :
    ```bash
-   unzip -o suivi-producteurs.zip && bash suivi-producteurs/installer_pythonanywhere.sh
+   unzip -o suivi-producteurs.zip && bash suivi-producteurs/installer_pythonanywhere.sh suivi.gage-etudes.org
    ```
-   Le script installe tout, charge les fiches d'octobre, crée le fichier de démarrage du site (l'ancien est
-   sauvegardé à côté) et vous demande un nom et un mot de passe administrateur.
-3. Onglet **Web** : faites les 4 réglages affichés à la fin du script (Virtualenv, Source code, Static files,
-   Force HTTPS), puis cliquez sur **Reload**.
+   Le script installe tout, charge les fiches d'octobre, écrit le fichier de démarrage de CE site uniquement
+   (il refuse d'écraser celui d'un autre site) et demande un nom et un mot de passe administrateur.
+5. **Régler** dans l'onglet **Web** les éléments affichés à la fin du script (Virtualenv, Source code,
+   Static files, certificat HTTPS, Force HTTPS), puis cliquez sur **Reload**.
 
 Pour une mise à jour : envoyez le nouveau zip et relancez la même commande. La base de données est conservée.
 
 ### Méthode manuelle (avec git)
 
-> Ces étapes utilisent l'adresse `gageetudes.pythonanywhere.com`. Si cette adresse sert déjà à un autre site,
-> créez une nouvelle application web (onglet **Web** → **Add a new web app**) ou demandez conseil avant de la remplacer.
+> Mêmes étapes 1 et 2 que ci-dessus (application web `suivi.gage-etudes.org` créée, CNAME en place), puis :
 
 1. **Récupérer le code.** Dans l'onglet **Consoles**, ouvrez une console **Bash** et tapez :
    ```bash
@@ -70,7 +77,7 @@ Pour une mise à jour : envoyez le nouveau zip et relancez la même commande. La
    - **Static files** : URL `/static/` → dossier `/home/gageetudes/SGT-Academy/suivi-producteurs/staticfiles`
    - **Force HTTPS** : activé. C'est obligatoire pour installer l'application sur le téléphone.
    - Cliquez sur **Reload**.
-5. Ouvrez `https://gageetudes.pythonanywhere.com/gestion/` et connectez-vous avec le compte administrateur.
+5. Ouvrez `https://suivi.gage-etudes.org/gestion/` et connectez-vous avec le compte administrateur.
 
 ### Mettre à jour plus tard
 ```bash

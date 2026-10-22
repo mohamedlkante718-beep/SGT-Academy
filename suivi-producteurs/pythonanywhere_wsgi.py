@@ -9,7 +9,7 @@ if CHEMIN not in sys.path:
 
 os.environ["DJANGO_SETTINGS_MODULE"] = "suivi.settings"
 os.environ["DJANGO_DEBUG"] = "0"
-os.environ["DJANGO_ALLOWED_HOSTS"] = "gageetudes.pythonanywhere.com"
+os.environ["DJANGO_ALLOWED_HOSTS"] = "suivi.gage-etudes.org"
 os.environ["DJANGO_SECRET_KEY"] = "REMPLACEZ-PAR-UNE-LONGUE-CHAINE-ALEATOIRE"
 
 from django.core.wsgi import get_wsgi_application  # noqa: E402
