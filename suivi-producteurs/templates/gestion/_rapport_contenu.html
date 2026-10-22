@@ -17,7 +17,7 @@
       <path d="{{ courbe.aire }}" fill="var(--accent-soft)"/>
       <path d="{{ courbe.chemin }}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
       {% for p in courbe.points %}<circle cx="{{ p.x }}" cy="{{ p.y }}" r="{% if forloop.last %}5{% else %}3.5{% endif %}" fill="var(--accent)"><title>Semaine du {{ p.semaine|date:"j M" }} : {% localize on %}{{ p.total|nombre }}{% endlocalize %} F</title></circle>
-      <text x="{{ p.x }}" y="{{ p.y|add:'-10' }}" text-anchor="middle" class="etiquette">{% localize on %}{{ p.total|nombre }}{% endlocalize %}</text>
+      <text x="{{ p.x }}" y="{{ p.y|add:'-10' }}" text-anchor="{% if forloop.first %}start{% elif forloop.last %}end{% else %}middle{% endif %}" class="etiquette">{% localize on %}{{ p.total|nombre }}{% endlocalize %}</text>
       <text x="{{ p.x }}" y="{{ courbe.H|add:'-10' }}" text-anchor="middle">{{ p.semaine|date:"j M" }}</text>{% endfor %}
     </svg>{% endlocalize %}
   {% elif courbe.seul %}

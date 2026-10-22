@@ -216,7 +216,7 @@ class Vente(models.Model):
 
 
 class Pret(models.Model):
-    """Prêt ou avance accordé par le CIAF, ou remboursement reçu. Saisi par l'administrateur."""
+    """Prêt ou avance accordé par le CIAF/CE, ou remboursement reçu. Saisi par l'administrateur."""
 
     TYPE_PRET = "pret"
     TYPE_REMBOURSEMENT = "remboursement"

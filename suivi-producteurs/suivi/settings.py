@@ -1,4 +1,4 @@
-"""Réglages du suivi des producteurs CIAF.
+"""Réglages du suivi des producteurs du CIAF/CE (Centre d'Incubation Agroforestière Champ École).
 
 En production (PythonAnywhere), les valeurs sensibles sont lues dans les
 variables d'environnement définies en haut du fichier WSGI :
@@ -48,6 +48,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "producteurs.views.organisation",
             ],
         },
     },
@@ -85,6 +86,10 @@ SESSION_COOKIE_AGE = 60 * 60 * 24 * 60  # 60 jours : le producteur reste connect
 if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+
+# Nom de la structure, affiché dans l'application, les rapports PDF et les fichiers Excel.
+ORGANISATION_SIGLE = "CIAF/CE"
+ORGANISATION_NOM = "Centre d'Incubation Agroforestière Champ École"
 
 # Jour où commence la semaine de suivi (0 = lundi … 2 = mercredi).
 # La fiche CIAF de référence couvre du mercredi 14 au mardi 20 octobre 2026.

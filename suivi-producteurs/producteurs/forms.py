@@ -20,7 +20,7 @@ class ConnexionForm(AuthenticationForm):
 
     error_messages = {
         "invalid_login": "Téléphone ou code PIN incorrect. Vérifiez et réessayez.",
-        "inactive": "Ce compte est désactivé. Contactez l'administrateur du CIAF.",
+        "inactive": "Ce compte est désactivé. Contactez l'administrateur du CIAF/CE.",
     }
 
     def clean_username(self):

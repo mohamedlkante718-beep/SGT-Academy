@@ -127,8 +127,8 @@ def rapport_periode(debut, fin, producteurs):
 
 # ---------------------------------------------------------------- export Excel
 
-def classeur_excel(r, genere_par=""):
-    """Classeur .xlsx dans l'esprit du fichier CIAF : récapitulatif, une feuille par producteur,
+def classeur_excel(r, genere_par="", sigle="CIAF/CE", organisation=""):
+    """Classeur .xlsx dans l'esprit du fichier du CIAF/CE : récapitulatif, une feuille par producteur,
     puis les feuilles des dépenses, des ventes, des prêts et le bilan financier."""
     from openpyxl import Workbook
     from openpyxl.formatting.rule import CellIsRule
@@ -160,13 +160,14 @@ def classeur_excel(r, genere_par=""):
         ws["A1"] = texte
         ws["A1"].font = titre
         ws["A2"] = f"Période : {r['titre']} (semaines commençant du {r['debut']:%d/%m/%Y} au {r['fin']:%d/%m/%Y})"
-        ws["A3"] = f"Généré le {date.today():%d/%m/%Y}" + (f" par {genere_par}" if genere_par else "")
+        ws["A3"] = (f"{organisation} · " if organisation else "") + f"Généré le {date.today():%d/%m/%Y}" + (
+            f" par {genere_par}" if genere_par else "")
         ws["A2"].font = ws["A3"].font = Font(italic=True, color="5D6B60")
 
     # --- Récapitulatif
     ws = wb.active
     ws.title = "Récapitulatif"
-    bandeau(ws, "Suivi des producteurs CIAF — Récapitulatif")
+    bandeau(ws, f"{sigle} · Suivi des producteurs — Récapitulatif")
     cols = ["Producteur", "Responsable", "Fiches reçues", "Fiches validées", "Valeur au début (F)",
             "Valeur à la fin (F)", "Évolution (F)", "Évolution (%)", "Dépenses (F)", "Ventes (F)",
             "Résultat net (F)", "Prêts accordés (F)", "Remboursements (F)", "Prêts en cours (F)"]
@@ -279,7 +280,7 @@ def classeur_excel(r, genere_par=""):
     # --- Dépenses, ventes, prêts : une ligne par opération
     def feuille_operations(titre_feuille, colonnes, rangees, col_montant, tailles):
         ws = wb.create_sheet(titre_feuille)
-        bandeau(ws, f"Suivi des producteurs CIAF — {titre_feuille}")
+        bandeau(ws, f"{sigle} · Suivi des producteurs — {titre_feuille}")
         entete(ws, 5, colonnes)
         if not rangees:
             ws.cell(6, 1, "Aucune opération sur la période.").font = Font(italic=True, color="5D6B60")
@@ -328,7 +329,7 @@ def classeur_excel(r, genere_par=""):
 
     # --- Bilan financier
     ws = wb.create_sheet("Bilan financier")
-    bandeau(ws, "Suivi des producteurs CIAF — Bilan financier")
+    bandeau(ws, f"{sigle} · Suivi des producteurs — Bilan financier")
     entete(ws, 5, ["Rubrique", "Montant (F CFA)"])
     n = 6
     ws.cell(n, 1, "1. Entrées d'argent (ventes)").font = gras

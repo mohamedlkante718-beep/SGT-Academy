@@ -54,7 +54,7 @@ if [ -f "$WSGI" ]; then
     cp "$WSGI" "$WSGI.sauvegarde-$(date +%Y%m%d-%H%M%S)"
 fi
 cat > "$WSGI" <<WSGIEOF
-# Suivi des producteurs CIAF — généré par installer_pythonanywhere.sh
+# Suivi des producteurs CIAF/CE — généré par installer_pythonanywhere.sh
 import os
 import sys
 

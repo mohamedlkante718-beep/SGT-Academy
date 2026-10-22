@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -6,8 +7,8 @@ from .forms import ProducteurAdminForm, ResponsableAdminForm
 from .models import (Depense, Fiche, LigneEffectif, LigneValeur, Pret, Producteur, Produit, Responsable,
                      Secteur, Vente)
 
-admin.site.site_header = "Suivi des producteurs — CIAF"
-admin.site.site_title = "Suivi CIAF"
+admin.site.site_header = f"Suivi des producteurs — {settings.ORGANISATION_SIGLE}"
+admin.site.site_title = f"Suivi {settings.ORGANISATION_SIGLE}"
 admin.site.index_title = "Administration"
 admin.site.site_url = "/gestion/"
 

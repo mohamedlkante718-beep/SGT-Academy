@@ -20,7 +20,7 @@
 </section>
 
 {% if not groupes %}
-  <div class="notice warn">L'administrateur ne vous a pas encore attribué de produits. Contactez le CIAF.</div>
+  <div class="notice warn">L'administrateur ne vous a pas encore attribué de produits. Contactez le {{ sigle }}.</div>
 {% else %}
 <form method="post" id="fiche" class="section">
   {% csrf_token %}
@@ -54,7 +54,7 @@
     <h2>Observations</h2>
     <textarea name="observations" rows="3" placeholder="État des animaux ou des plants, naissances, maladies, mortalités…" {% if verrouillee %}disabled{% endif %}>{{ observations }}</textarea>
   </div>
-  <p class="muted small">Laissez vide un produit que vous n'avez pas cette semaine. Il manque un produit ? Demandez à l'administrateur du CIAF de vous l'attribuer.</p>
+  <p class="muted small">Laissez vide un produit que vous n'avez pas cette semaine. Il manque un produit ? Demandez à l'administrateur du {{ sigle }} de vous l'attribuer.</p>
 </form>
 {% endif %}
 {% endblock %}

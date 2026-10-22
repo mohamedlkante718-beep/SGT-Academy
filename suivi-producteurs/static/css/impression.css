@@ -35,3 +35,9 @@ table.compact { border: 1px solid var(--line); border-radius: 6px; font-size: .8
   .page { padding: 16px; margin: 0; }
   .page .kpis, .page .grid2 { grid-template-columns: 1fr; }
 }
+/* Le récapitulatif doit tenir dans la largeur d'une page A4. */
+.page table { font-size: .8rem; }
+.page td.num { font-size: .76rem; }
+.page th { font-size: .62rem; white-space: normal; }
+.page th, .page td { padding: 4px 6px; }
+.page .pill { font-size: .7rem; padding: 1px 6px; }

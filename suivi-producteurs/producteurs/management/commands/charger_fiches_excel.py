@@ -21,7 +21,7 @@ DOSSIER = Path(__file__).resolve().parents[2] / "donnees"
 
 
 class Command(BaseCommand):
-    help = "Charge les fiches reprises des fichiers Excel du CIAF (sans écraser une fiche existante)."
+    help = "Charge les fiches reprises des fichiers Excel du CIAF/CE (sans écraser une fiche existante)."
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -43,7 +43,7 @@ class Command(BaseCommand):
                 if Fiche.objects.filter(producteur=producteur, semaine=semaine).exists():
                     continue
                 fiche = Fiche.objects.create(producteur=producteur, semaine=semaine, observations=p["observations"],
-                                             statut=Fiche.VALIDEE, commentaire="Reprise du fichier Excel CIAF.")
+                                             statut=Fiche.VALIDEE, commentaire="Reprise du fichier Excel du CIAF/CE.")
                 for modele, lignes in ((LigneEffectif, p["effectifs"]), (LigneValeur, p["valeurs"])):
                     for l in lignes:
                         produit = catalogue.get(cle(l["libelle"]))

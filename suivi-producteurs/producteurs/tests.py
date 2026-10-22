@@ -73,6 +73,7 @@ class SaisieMobileTests(TestCase):
 
     def test_connexion_par_telephone_avec_espaces(self):
         self.client.logout()
+        self.assertContains(self.client.get(reverse("connexion")), "Centre d&#x27;Incubation Agroforestière Champ École")
         r = self.client.post(reverse("connexion"), {"username": "76 00 00 01", "password": "1234"})
         self.assertRedirects(r, reverse("accueil"))
 
@@ -188,7 +189,8 @@ class RapportTests(TestCase):
 
     def test_rapport_imprimable(self):
         r = self.client.get(reverse("rapport_imprimable") + self.octobre)
-        self.assertContains(r, "Rapport de situation — Octobre 2026")
+        self.assertContains(r, "Suivi des producteurs — Octobre 2026")
+        self.assertContains(r, "CIAF/CE · Centre d&#x27;Incubation Agroforestière Champ École")
         self.assertContains(r, "Imprimer ou enregistrer en PDF")
         self.assertContains(r, "Détail par producteur")
 
@@ -200,6 +202,8 @@ class RapportTests(TestCase):
         self.assertEqual(r["Content-Type"], "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         wb = load_workbook(BytesIO(r.content))
         self.assertEqual(wb.sheetnames[0], "Récapitulatif")
+        self.assertEqual(wb["Récapitulatif"]["A1"].value, "CIAF/CE · Suivi des producteurs — Récapitulatif")
+        self.assertTrue(wb["Récapitulatif"]["A3"].value.startswith("Centre d'Incubation Agroforestière Champ École"))
         self.assertIn("Alpha GANO", wb.sheetnames)
         self.assertEqual(wb.sheetnames[-4:], ["Dépenses", "Ventes", "Prêts", "Bilan financier"])
         self.assertEqual(wb["Dépenses"].max_row, 5 + 10 + 1)  # en-tête, 10 dépenses, total

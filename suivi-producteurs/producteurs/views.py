@@ -2,6 +2,7 @@ import csv
 from datetime import date, timedelta
 from functools import wraps
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import views as auth_views
 from django.contrib.auth.decorators import login_required
@@ -18,6 +19,11 @@ from . import rapports
 from .forms import ConnexionForm, ValidationForm
 from .models import Fiche, LigneEffectif, LigneValeur, Producteur, Responsable, Secteur
 from .services import cle, comparer_lignes, debut_semaine, evolution, recapitulatif
+
+
+def organisation(request):
+    """Nom de la structure pour tous les gabarits."""
+    return {"sigle": settings.ORGANISATION_SIGLE, "organisation": settings.ORGANISATION_NOM}
 
 
 class ConnexionView(auth_views.LoginView):
@@ -201,7 +207,7 @@ def tableau(request):
 
     if request.GET.get("format") == "csv":
         rep = HttpResponse(content_type="text/csv; charset=utf-8")
-        rep["Content-Disposition"] = f'attachment; filename="recapitulatif-ciaf-{semaine}.csv"'
+        rep["Content-Disposition"] = f'attachment; filename="recapitulatif-ciaf-ce-{semaine}.csv"'
         rep.write("﻿")
         w = csv.writer(rep, delimiter=";")
         w.writerow(["Producteur", "Statut", "Valeur précédente", "Valeur actuelle", "Évolution", "Dépenses", "Ventes",
@@ -330,9 +336,10 @@ def rapport_imprimable(request):
 @suivi_requis
 def rapport_excel(request):
     r = _rapport(request)
-    contenu = rapports.classeur_excel(r, genere_par=request.user.first_name or request.user.username)
+    contenu = rapports.classeur_excel(r, genere_par=request.user.first_name or request.user.username,
+                                      sigle=settings.ORGANISATION_SIGLE, organisation=settings.ORGANISATION_NOM)
     rep = HttpResponse(contenu, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    rep["Content-Disposition"] = f'attachment; filename="rapport-ciaf-{r["debut"]}-au-{r["fin"]}.xlsx"'
+    rep["Content-Disposition"] = f'attachment; filename="rapport-ciaf-ce-{r["debut"]}-au-{r["fin"]}.xlsx"'
     return rep
 
 
@@ -340,8 +347,9 @@ def rapport_excel(request):
 
 def manifest(request):
     return JsonResponse({
-        "name": "Suivi producteurs CIAF",
-        "short_name": "Suivi CIAF",
+        "name": f"Suivi des producteurs {settings.ORGANISATION_SIGLE}",
+        "short_name": f"Suivi {settings.ORGANISATION_SIGLE}",
+        "description": settings.ORGANISATION_NOM,
         "start_url": "/",
         "scope": "/",
         "display": "standalone",

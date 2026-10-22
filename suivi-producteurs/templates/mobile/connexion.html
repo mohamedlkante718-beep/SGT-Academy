@@ -4,13 +4,15 @@
 {% block contenu %}
 <form method="post" class="card connexion">
   {% csrf_token %}
+  <p class="surtitre">{{ sigle }}</p>
+  <p class="organisation">{{ organisation }}</p>
   <h1>Connexion</h1>
-  <p class="muted">Entrez votre numéro de téléphone et le code PIN donné par le CIAF.</p>
+  <p class="muted">Entrez votre numéro de téléphone et le code PIN donné par le {{ sigle }}.</p>
   {% if form.non_field_errors %}<ul class="errorlist">{% for e in form.non_field_errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
   <div class="field"><label for="{{ form.username.id_for_label }}">Téléphone</label>{{ form.username }}</div>
   <div class="field"><label for="{{ form.password.id_for_label }}">Code PIN</label>{{ form.password }}</div>
   <input type="hidden" name="next" value="{{ next }}">
   <button class="btn primary big" type="submit">Se connecter</button>
-  <p class="muted small">Code oublié ? Demandez à l'administrateur du CIAF de vous en donner un nouveau.</p>
+  <p class="muted small">Code oublié ? Demandez à l'administrateur du {{ sigle }} de vous en donner un nouveau.</p>
 </form>
 {% endblock %}

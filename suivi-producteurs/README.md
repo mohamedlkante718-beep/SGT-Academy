@@ -1,6 +1,6 @@
-# Suivi des producteurs — CIAF
+# Suivi des producteurs — CIAF/CE
 
-Application de suivi hebdomadaire des producteurs du CIAF.
+Application de suivi hebdomadaire des producteurs du **CIAF/CE — Centre d'Incubation Agroforestière Champ École**.
 
 | Qui | Où | Ce qu'il fait |
 |---|---|---|
