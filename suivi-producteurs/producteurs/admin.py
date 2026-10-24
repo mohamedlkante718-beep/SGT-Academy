@@ -3,8 +3,8 @@ from django.contrib import admin
 from django.db import transaction
 
 from .forms import ProducteurAdminForm, ResponsableAdminForm, lier_compte
-from .models import (Depense, Fiche, LigneEffectif, LigneValeur, Pret, Producteur, Produit, Responsable,
-                     Parametres, Secteur, Vente)
+from .models import (CategorieCaisse, Depense, Fiche, LigneEffectif, LigneValeur, OperationCaisse, Parametres, Pret,
+                     Producteur, Produit, Responsable, Secteur, Vente)
 
 admin.site.site_header = f"Suivi des producteurs — {settings.ORGANISATION_SIGLE}"
 admin.site.site_title = f"Suivi {settings.ORGANISATION_SIGLE}"
@@ -51,7 +51,29 @@ class SecteurAdmin(admin.ModelAdmin):
 
 class PretInline(admin.TabularInline):
     model = Pret
+    fk_name = "producteur"
     extra = 0
+    fields = ["date", "type", "montant", "taux_interet", "echeance", "pret_rembourse", "description"]
+
+
+@admin.register(CategorieCaisse)
+class CategorieCaisseAdmin(admin.ModelAdmin):
+    list_display = ["nom", "sens", "ordre", "actif"]
+    list_filter = ["sens", "actif"]
+    list_editable = ["ordre", "actif"]
+
+
+@admin.register(OperationCaisse)
+class OperationCaisseAdmin(admin.ModelAdmin):
+    list_display = ["date", "categorie", "libelle", "montant", "tiers", "mode_paiement", "saisie_par"]
+    list_filter = ["categorie__sens", "categorie", "mode_paiement"]
+    date_hierarchy = "date"
+    search_fields = ["libelle", "tiers"]
+
+    def save_model(self, request, obj, form, change):
+        if not obj.saisie_par_id:
+            obj.saisie_par = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(Producteur)
@@ -157,6 +179,7 @@ class FicheAdmin(admin.ModelAdmin):
 
 @admin.register(Pret)
 class PretAdmin(admin.ModelAdmin):
-    list_display = ["producteur", "date", "type", "montant", "description"]
+    list_display = ["producteur", "date", "type", "montant", "taux_interet", "echeance", "description"]
     list_filter = ["type", "producteur"]
+    fields = ["producteur", "date", "type", "montant", "taux_interet", "echeance", "pret_rembourse", "description"]
     date_hierarchy = "date"

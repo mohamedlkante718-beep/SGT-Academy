@@ -5,7 +5,8 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.urls import reverse
 
-from .models import Depense, Fiche, LigneEffectif, LigneValeur, Pret, Producteur, Produit, Responsable, Secteur
+from .models import (CategorieCaisse, Depense, Fiche, LigneEffectif, LigneValeur, OperationCaisse, Pret, Producteur,
+                     Produit, Responsable, Secteur)
 from .services import debut_semaine, evolution
 
 S1 = date(2026, 10, 14)
@@ -205,9 +206,9 @@ class RapportTests(TestCase):
         self.assertEqual(wb["Récapitulatif"]["A1"].value, "CIAF/CE · Suivi des producteurs — Récapitulatif")
         self.assertTrue(wb["Récapitulatif"]["A3"].value.startswith("Centre d'Incubation Agroforestière Champ École"))
         self.assertIn("Alpha GANO", wb.sheetnames)
-        self.assertEqual(wb.sheetnames[-4:], ["Dépenses", "Ventes", "Prêts", "Bilan financier"])
+        self.assertEqual(wb.sheetnames[-5:], ["Dépenses", "Ventes", "Prêts", "Caisse du centre", "Bilan financier"])
         self.assertEqual(wb["Dépenses"].max_row, 5 + 10 + 1)  # en-tête, 10 dépenses, total
-        self.assertEqual(wb["Prêts"]["A6"].value, "Aucune opération sur la période.")
+        self.assertEqual(wb["Prêts"]["A6"].value, "Aucun prêt.")
         recap = wb["Récapitulatif"]
         self.assertEqual((recap["A6"].value, recap["E6"].value, recap["F6"].value), ("Alpha GANO", 3_556_600, 3_705_500))
         self.assertEqual(recap["G6"].value, '=IF(OR(E6="",F6=""),"",F6-E6)')
@@ -286,11 +287,12 @@ class PagesGestionTests(TestCase):
         self.fiche = Fiche.objects.create(producteur=self.p, semaine=S1)
 
     def test_pages_accessibles_et_menu_interne(self):
-        for nom in ("producteurs", "responsables", "secteurs", "prets", "producteur_ajouter", "responsable_ajouter",
+        for nom in ("producteurs", "responsables", "secteurs", "prets", "caisse", "producteur_ajouter", "responsable_ajouter",
                     "secteur_ajouter"):
             r = self.client.get(reverse(nom))
             self.assertEqual(r.status_code, 200, nom)
-            self.assertNotContains(r, "/admin/producteurs/")
+            if nom != "caisse":  # la caisse renvoie volontairement vers l'administration des catégories
+                self.assertNotContains(r, "/admin/producteurs/")
         self.assertEqual(self.client.get(reverse("finances", args=[self.fiche.pk])).status_code, 200)
 
     def test_ajouter_producteur(self):
@@ -348,14 +350,17 @@ class PagesGestionTests(TestCase):
         self.assertEqual((self.fiche.total_depenses, self.fiche.total_ventes), (25000, 40000))
 
     def test_prets(self):
-        self.client.post(reverse("prets"), {"producteur": self.p.pk, "date": "2026-10-20", "type": "pret",
-                                            "montant": "100000", "description": "Achat poussins"})
-        self.client.post(reverse("prets"), {"producteur": self.p.pk, "date": "2026-10-21", "type": "remboursement",
-                                            "montant": "30000"})
+        self.client.post(reverse("prets"), {"action": "accorder", "pret-producteur": self.p.pk, "pret-date": "2026-10-20",
+                                            "pret-montant": "100000", "pret-taux_interet": "10",
+                                            "pret-description": "Achat poussins"})
+        pret = Pret.objects.get(type="pret")
+        self.assertEqual((pret.interets, pret.total_du), (10000, 110000))
+        self.client.post(reverse("prets"), {"action": "rembourser", "rembt-pret_rembourse": pret.pk,
+                                            "rembt-date": "2026-10-21", "rembt-montant": "30000"})
         r = self.client.get(reverse("prets"))
-        self.assertEqual(r.context["total"], 70000)
+        self.assertEqual(r.context["tot"]["reste"], 80000)
         self.client.post(reverse("prets"), {"supprimer": Pret.objects.get(type="remboursement").pk})
-        self.assertEqual(self.p.prets_en_cours(), 100000)
+        self.assertEqual(self.p.prets_en_cours(), 110000)
 
     def test_responsable_n_a_pas_acces(self):
         Responsable.objects.create(nom="R", telephone="76000200", utilisateur=compte("76000200"))
@@ -446,3 +451,105 @@ class SuppressionTests(TestCase):
         self.client.login(username="76000200", password="1234")
         self.client.post(reverse("fiche_supprimer", args=[self.fiche.pk]))
         self.assertTrue(Fiche.objects.exists())
+
+
+class PretsEtCaisseTests(TestCase):
+    def setUp(self):
+        get_user_model().objects.create_superuser("chef", password="secret-123")
+        self.client.login(username="chef", password="secret-123")
+        self.p = creer_producteur("Alpha GANO", "76000001")
+        self.q = creer_producteur("Mariam KONE", "76000002")
+
+    def accorder(self, producteur, montant, taux="0", date_="2026-10-01", echeance=""):
+        self.client.post(reverse("prets"), {"action": "accorder", "pret-producteur": producteur.pk, "pret-date": date_,
+                                            "pret-montant": montant, "pret-taux_interet": taux, "pret-echeance": echeance})
+        return Pret.objects.filter(type="pret").latest("id")
+
+    def rembourser(self, pret, montant, date_="2026-10-10"):
+        return self.client.post(reverse("prets"), {"action": "rembourser", "rembt-pret_rembourse": pret.pk,
+                                                   "rembt-date": date_, "rembt-montant": montant})
+
+    def test_pourcentages_retard_et_remboursement_complet(self):
+        a = self.accorder(self.p, "100000", taux="10", echeance="2026-10-15")   # 110 000 à rembourser, échu
+        b = self.accorder(self.q, "50000", echeance="2027-01-31")               # 50 000, pas encore échu
+        self.rembourser(a, "55000")
+        self.rembourser(b, "50000")
+        from .caisse import portefeuille_prets
+        lignes, t = portefeuille_prets(jusqu_au=date(2026, 10, 24))
+        self.assertEqual((t["du"], t["rembourse"], t["reste"]), (160000, 105000, 55000))
+        self.assertEqual((t["pct_rembourse"], t["pct_non_rembourse"]), (65.6, 34.4))
+        etats = {l["pret"].producteur.nom: l["statut"] for l in lignes}
+        self.assertEqual(etats, {"Alpha GANO": "retard", "Mariam KONE": "rembourse"})
+        self.assertEqual((t["retard"], t["nb_retard"]), (55000, 1))
+
+    def test_remboursement_superieur_au_reste_refuse(self):
+        a = self.accorder(self.p, "20000")
+        r = self.rembourser(a, "25000")
+        self.assertContains(r, "Le reste à rembourser sur ce prêt est de 20")
+        self.assertFalse(Pret.objects.filter(type="remboursement").exists())
+
+    def test_echeance_avant_le_pret_refusee(self):
+        r = self.client.post(reverse("prets"), {"action": "accorder", "pret-producteur": self.p.pk,
+                                                "pret-date": "2026-10-20", "pret-montant": "1000",
+                                                "pret-taux_interet": "0", "pret-echeance": "2026-10-01"})
+        self.assertContains(r, "L&#x27;échéance doit être après la date du prêt.")
+
+    def test_caisse_du_centre(self):
+        salaires = CategorieCaisse.objects.get(nom="Salaires et indemnités")
+        cuisine = CategorieCaisse.objects.get(nom="Alimentation / cuisine")
+        apport = CategorieCaisse.objects.get(nom="Apport du promoteur")
+        url = reverse("caisse") + "?periode=libre&debut=2026-10-01&fin=2026-10-31"
+        for cat, lib, montant in ((apport, "Apport octobre", "500000"), (salaires, "Salaire gardien", "60000"),
+                                  (cuisine, "Repas formation", "40000")):
+            r = self.client.post(url, {"date": "2026-10-05", "categorie": cat.pk, "libelle": lib, "montant": montant,
+                                       "mode_paiement": "especes"})
+            self.assertEqual(r.status_code, 302)
+        a = self.accorder(self.p, "100000", date_="2026-10-06")
+        self.rembourser(a, "30000", date_="2026-10-20")
+        r = self.client.get(url)
+        b = r.context["b"]
+        self.assertEqual((b["total_entrees"], b["total_sorties"], b["solde_periode"]), (530000, 200000, 330000))
+        sorties = {l["categorie"]: l["montant"] for l in b["sorties"]}
+        self.assertEqual(sorties, {"Salaires et indemnités": 60000, "Alimentation / cuisine": 40000,
+                                   "Prêts accordés aux producteurs": 100000})
+        self.assertContains(r, "Salaire gardien")
+        self.assertEqual(OperationCaisse.objects.get(libelle="Salaire gardien").saisie_par.username, "chef")
+
+    def test_justificatif_photo(self):
+        import shutil
+        import tempfile
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.test import override_settings
+        dossier = tempfile.mkdtemp()
+        with override_settings(MEDIA_ROOT=dossier):
+            elec = CategorieCaisse.objects.get(nom="Électricité")
+            recu = SimpleUploadedFile("recu.jpg", b"\xff\xd8\xff" + b"0" * 50, content_type="image/jpeg")
+            self.client.post(reverse("caisse"), {"date": "2026-10-05", "categorie": elec.pk, "libelle": "Facture EDM",
+                                                 "montant": "35000", "piece": recu})
+            self.assertTrue(OperationCaisse.objects.get().piece.name.startswith("pieces/"))
+        shutil.rmtree(dossier, ignore_errors=True)
+
+    def test_rapport_excel_avec_caisse_et_prets(self):
+        from io import BytesIO
+        from openpyxl import load_workbook
+        Fiche.objects.create(producteur=self.p, semaine=date(2026, 10, 7))
+        CategorieCaisse.objects.get(nom="Électricité").operations.create(date=date(2026, 10, 9), libelle="Facture",
+                                                                           montant=35000)
+        self.accorder(self.p, "100000", taux="5")
+        r = self.client.get(reverse("rapport_excel") + "?periode=libre&debut=2026-10-01&fin=2026-10-31")
+        wb = load_workbook(BytesIO(r.content))
+        self.assertIn("Caisse du centre", wb.sheetnames)
+        self.assertEqual(wb["Prêts"]["G6"].value, "=D6+F6")
+        self.assertEqual(wb["Prêts"]["E6"].value, 5.0)
+        page = self.client.get(reverse("rapport") + "?periode=libre&debut=2026-10-01&fin=2026-10-31")
+        self.assertContains(page, "Caisse du centre")
+
+    def test_responsable_sans_acces_a_la_caisse(self):
+        r = Responsable.objects.create(nom="R", telephone="76000200", utilisateur=compte("76000200"))
+        self.p.responsable = r
+        self.p.save()
+        self.client.login(username="76000200", password="1234")
+        self.assertRedirects(self.client.get(reverse("caisse")), reverse("tableau"))
+        self.assertRedirects(self.client.get(reverse("prets")), reverse("tableau"))
+        rapport = self.client.get(reverse("rapport"))
+        self.assertNotIn("centre", rapport.context)

@@ -149,3 +149,9 @@ label.case input, .saisie-table input[type="checkbox"] { width: auto; }
 .logo-connexion { height: 90px; width: auto; max-width: 70%; object-fit: contain; align-self: center; }
 a.danger { color: var(--down); font-weight: 600; }
 .btn.danger-fond { background: var(--down); border-color: var(--down); color: var(--surface); }
+
+/* ---- jauges (prêts remboursés, parts des catégories) ---- */
+.jauge { height: 8px; border-radius: 999px; background: var(--flat-soft); overflow: hidden; min-width: 80px; }
+.jauge span { display: block; height: 100%; background: var(--up); border-radius: 999px; }
+.jauge.rouge span { background: var(--down); }
+.jauge.petite { height: 6px; min-width: 70px; }

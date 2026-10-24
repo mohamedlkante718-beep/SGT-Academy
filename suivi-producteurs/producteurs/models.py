@@ -1,4 +1,5 @@
-from datetime import timedelta
+from datetime import date, timedelta
+from decimal import Decimal
 
 from django.conf import settings
 from django.core.validators import FileExtensionValidator
@@ -88,12 +89,13 @@ class Producteur(models.Model):
         return self.fiches.filter(semaine__lt=semaine).order_by("-semaine").first()
 
     def prets_en_cours(self, jusqu_au=None):
+        """Reste dû par le producteur : capital + intérêts des prêts, moins les remboursements."""
         qs = self.prets.all()
         if jusqu_au:
             qs = qs.filter(date__lte=jusqu_au)
-        accordes = qs.filter(type=Pret.TYPE_PRET).aggregate(s=Sum("montant"))["s"] or 0
+        du = sum(p.total_du for p in qs.filter(type=Pret.TYPE_PRET))
         rembourses = qs.filter(type=Pret.TYPE_REMBOURSEMENT).aggregate(s=Sum("montant"))["s"] or 0
-        return accordes - rembourses
+        return du - rembourses
 
 
 class Fiche(models.Model):
@@ -228,11 +230,51 @@ class Pret(models.Model):
     type = models.CharField(max_length=20, choices=TYPES, default=TYPE_PRET)
     montant = models.PositiveIntegerField("montant (F CFA)")
     description = models.CharField(max_length=200, blank=True)
+    # Pour un prêt :
+    taux_interet = models.DecimalField("taux d'intérêt (%)", max_digits=5, decimal_places=2, default=0,
+                                       help_text="Pourcentage ajouté au montant prêté. 0 si le prêt est sans intérêt.")
+    echeance = models.DateField("date d'échéance", null=True, blank=True,
+                                help_text="Date à laquelle le prêt doit être entièrement remboursé.")
+    # Pour un remboursement : le prêt qu'il rembourse.
+    pret_rembourse = models.ForeignKey("self", on_delete=models.CASCADE, null=True, blank=True,
+                                       related_name="remboursements", verbose_name="prêt remboursé",
+                                       limit_choices_to={"type": TYPE_PRET})
 
     class Meta:
         ordering = ["-date", "-id"]
         verbose_name = "prêt / remboursement"
         verbose_name_plural = "prêts et remboursements"
+
+    def __str__(self):
+        return f"{self.producteur} — {self.montant:,} F du {self.date:%d/%m/%Y}".replace(",", "\u202f")
+
+    @property
+    def interets(self):
+        return int((Decimal(self.montant) * self.taux_interet / 100).quantize(Decimal("1"))) if self.type == self.TYPE_PRET else 0
+
+    @property
+    def total_du(self):
+        return self.montant + self.interets
+
+    @property
+    def rembourse(self):
+        return sum(r.montant for r in self.remboursements.all())
+
+    @property
+    def reste(self):
+        return max(self.total_du - self.rembourse, 0)
+
+    @property
+    def pct_rembourse(self):
+        return round(min(self.rembourse / self.total_du * 100, 100), 1) if self.total_du else 0
+
+    @property
+    def statut(self):
+        if self.reste == 0:
+            return "rembourse"
+        if self.echeance and self.echeance < date.today():
+            return "retard"
+        return "en_cours"
 
 
 class Parametres(models.Model):
@@ -250,3 +292,57 @@ class Parametres(models.Model):
 
     def __str__(self):
         return "Logo de la structure"
+
+
+# ---------------------------------------------------------------- caisse du centre
+
+class CategorieCaisse(models.Model):
+    """Rubrique d'entrée ou de sortie d'argent du centre (salaires, cuisine, électricité…)."""
+
+    ENTREE, SORTIE = "entree", "sortie"
+    SENS = [(ENTREE, "Entrée d'argent"), (SORTIE, "Sortie d'argent (dépense)")]
+
+    nom = models.CharField(max_length=80)
+    sens = models.CharField(max_length=10, choices=SENS, default=SORTIE)
+    ordre = models.PositiveIntegerField("ordre d'affichage", default=0)
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["sens", "ordre", "nom"]
+        verbose_name = "catégorie de caisse"
+        verbose_name_plural = "catégories de caisse"
+        constraints = [models.UniqueConstraint(fields=["nom", "sens"], name="categorie_caisse_unique")]
+
+    def __str__(self):
+        return self.nom
+
+
+class OperationCaisse(models.Model):
+    """Une entrée ou une sortie d'argent du centre : salaire, repas, facture d'électricité, subvention…"""
+
+    date = models.DateField()
+    categorie = models.ForeignKey(CategorieCaisse, on_delete=models.PROTECT, related_name="operations",
+                                  verbose_name="catégorie")
+    libelle = models.CharField("description", max_length=200)
+    montant = models.PositiveIntegerField("montant (F CFA)")
+    mode_paiement = models.CharField("paiement", max_length=20, choices=MODES_PAIEMENT, blank=True)
+    tiers = models.CharField("payé à / reçu de", max_length=120, blank=True,
+                             help_text="Ex. nom de l'employé, du fournisseur, du donateur.")
+    piece = models.FileField("pièce justificative", upload_to="pieces/%Y/%m/", blank=True,
+                             validators=[FileExtensionValidator(["pdf", "png", "jpg", "jpeg", "webp"])],
+                             help_text="Photo du reçu ou de la facture (facultatif).")
+    saisie_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                   editable=False)
+    cree_le = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-date", "-id"]
+        verbose_name = "opération de caisse"
+        verbose_name_plural = "caisse du centre"
+
+    def __str__(self):
+        return f"{self.date:%d/%m/%Y} — {self.libelle} — {self.montant} F"
+
+    @property
+    def est_entree(self):
+        return self.categorie.sens == CategorieCaisse.ENTREE

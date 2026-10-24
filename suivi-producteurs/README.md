@@ -116,6 +116,17 @@ Le tableau de bord calcule le montant restant dû.
 l'administrateur peut la supprimer (lien « Supprimer cette fiche » en bas de la fiche du producteur). Une page demande
 toujours de confirmer. Le responsable ne peut rien supprimer.
 
+**Prêts** (menu **Prêts**) : « Accorder un prêt » (producteur, montant, **taux d'intérêt**, **date d'échéance**,
+objet), puis « Enregistrer un remboursement » en choisissant le prêt concerné. La page affiche le total prêté, les
+intérêts attendus, le **% remboursé et le % non remboursé**, le reste dû et les **prêts en retard** (échéance dépassée).
+
+**Caisse du centre** (menu **Caisse du centre**, administrateur seulement) : toutes les entrées et sorties d'argent du
+centre — salaires, alimentation / cuisine, électricité, eau, réparations, transport et carburant, fournitures,
+communication, intrants, apports du promoteur, subventions, ventes du centre… — avec une photo du reçu si besoin.
+La page donne les totaux par catégorie (en %), le solde de la période et le solde cumulé. Les prêts accordés et les
+remboursements y sont comptés automatiquement. Nouvelles catégories : `/admin/` → **Catégories de caisse**.
+Les rapports (web, PDF, Excel) contiennent une partie « Prêts » et, pour l'administrateur, « Caisse du centre ».
+
 **Logo** : dans `/admin/`, rubrique **Logo**, cliquez sur **Ajouter**, choisissez l'image (PNG ou JPG), puis **Enregistrer**.
 Il s'affiche en haut des pages, sur la page de connexion et dans le rapport imprimable. Pour le changer, ouvrez la même rubrique.
 
@@ -135,7 +146,7 @@ Le tableau de bord garde l'export CSV de la semaine et un lien direct vers le ra
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_fiches_excel && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 40 tests
+python manage.py test producteurs   # 47 tests
 ```
 
 ## À venir

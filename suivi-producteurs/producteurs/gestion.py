@@ -1,5 +1,5 @@
 """Pages de gestion de l'administrateur, dans le même style que le tableau de bord :
-producteurs, responsables, secteurs et produits, dépenses et ventes d'une fiche, prêts."""
+producteurs, responsables, secteurs et produits, dépenses et ventes d'une fiche, prêts, caisse du centre."""
 
 from datetime import date
 from functools import wraps
@@ -11,9 +11,11 @@ from django.db.models import Count, Max, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from .forms import (DepensesFormSet, PretForm, ProducteurAdminForm, ProduitsFormSet, ResponsableAdminForm,
-                    SecteurForm, VentesFormSet)
-from .models import Fiche, Pret, Producteur, Responsable, Secteur
+from . import rapports
+from .caisse import bilan_centre, portefeuille_prets
+from .forms import (DepensesFormSet, OperationCaisseForm, PretForm, ProducteurAdminForm, ProduitsFormSet,
+                    RemboursementForm, ResponsableAdminForm, SecteurForm, VentesFormSet)
+from .models import Fiche, OperationCaisse, Pret, Producteur, Responsable, Secteur
 
 
 def admin_requis(vue):
@@ -130,6 +132,10 @@ def finances(request, pk):
 
 # ---------------------------------------------------------------- prêts
 
+def _f(n):
+    return f"{n:,}".replace(",", "\u202f")
+
+
 @admin_requis
 def prets(request):
     if request.method == "POST" and "supprimer" in request.POST:
@@ -137,19 +143,58 @@ def prets(request):
         pret.delete()
         messages.success(request, "Opération supprimée.")
         return redirect("prets")
-    form = PretForm(request.POST or None, initial={"date": date.today(), "producteur": request.GET.get("producteur")})
-    if request.method == "POST" and form.is_valid():
+    action = request.POST.get("action")
+    form = PretForm(request.POST if action == "accorder" else None,
+                    initial={"date": date.today(), "producteur": request.GET.get("producteur")}, prefix="pret")
+    rembt = RemboursementForm(request.POST if action == "rembourser" else None,
+                              initial={"date": date.today()}, prefix="rembt")
+    if action == "accorder" and form.is_valid():
         pret = form.save()
-        messages.success(request, f"{pret.get_type_display()} de {pret.montant:,} F enregistré pour {pret.producteur.nom}."
-                         .replace(",", " "))
+        messages.success(request, f"Prêt de {_f(pret.montant)} F accordé à {pret.producteur.nom} "
+                                  f"(à rembourser : {_f(pret.total_du)} F).")
         return redirect("prets")
-    liste = Pret.objects.select_related("producteur")[:200]
-    encours = []
-    for p in Producteur.objects.filter(prets__isnull=False).distinct():
-        encours.append({"producteur": p, "montant": p.prets_en_cours()})
-    return _page(request, "gestion/prets.html", "prets", form=form, prets=liste,
-                 encours=sorted(encours, key=lambda e: -e["montant"]),
-                 total=sum(e["montant"] for e in encours))
+    if action == "rembourser" and rembt.is_valid():
+        r = rembt.save()
+        messages.success(request, f"Remboursement de {_f(r.montant)} F enregistré pour {r.producteur.nom} "
+                                  f"(reste {_f(r.pret_rembourse.reste)} F).")
+        return redirect("prets")
+    lignes, tot = portefeuille_prets()
+    filtre = request.GET.get("statut")
+    if filtre in ("retard", "en_cours", "rembourse"):
+        lignes = [l for l in lignes if l["statut"] == filtre]
+    remboursements = Pret.objects.filter(type=Pret.TYPE_REMBOURSEMENT).select_related("producteur", "pret_rembourse")[:100]
+    return _page(request, "gestion/prets.html", "prets", form=form, rembt=rembt, lignes=lignes, tot=tot,
+                 filtre=filtre, remboursements=remboursements)
+
+
+# ---------------------------------------------------------------- caisse du centre
+
+@admin_requis
+def caisse(request):
+    if request.method == "POST" and "supprimer" in request.POST:
+        op = get_object_or_404(OperationCaisse, pk=request.POST["supprimer"])
+        op.delete()
+        messages.success(request, "Opération supprimée.")
+        return redirect(request.get_full_path())
+    form = OperationCaisseForm(request.POST or None, request.FILES or None, initial={"date": date.today()})
+    if request.method == "POST" and form.is_valid():
+        op = form.save(commit=False)
+        op.saisie_par = request.user
+        op.save()
+        sens = "Entrée" if op.est_entree else "Dépense"
+        messages.success(request, f"{sens} de {_f(op.montant)} F enregistrée : {op.libelle}.")
+        return redirect(request.get_full_path())
+    choix = request.GET.get("periode") or "mois"
+    try:
+        d, f = date.fromisoformat(request.GET.get("debut", "")), date.fromisoformat(request.GET.get("fin", ""))
+    except ValueError:
+        d = f = None
+    if choix == "libre" and not (d and f):
+        choix = "mois"
+    debut, fin = rapports.bornes(choix, debut=d, fin=f)
+    return _page(request, "gestion/caisse.html", "caisse", form=form, b=bilan_centre(debut, fin),
+                 debut=debut, fin=fin, choix=choix, periodes=rapports.PERIODES,
+                 titre=rapports.titre_periode(debut, fin), requete=request.GET.urlencode())
 
 
 @admin_requis

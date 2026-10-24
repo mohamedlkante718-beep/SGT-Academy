@@ -27,6 +27,7 @@ urlpatterns = [
     path("gestion/fiches/<int:pk>/finances/", gestion.finances, name="finances"),
     path("gestion/fiches/<int:pk>/supprimer/", gestion.fiche_supprimer, name="fiche_supprimer"),
     path("gestion/prets/", gestion.prets, name="prets"),
+    path("gestion/caisse/", gestion.caisse, name="caisse"),
     path("gestion/rapport/", views.rapport, name="rapport"),
     path("gestion/rapport/imprimer/", views.rapport_imprimable, name="rapport_imprimable"),
     path("gestion/rapport/excel/", views.rapport_excel, name="rapport_excel"),

@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
 from . import rapports
+from .caisse import bilan_centre, portefeuille_prets
 from .forms import ConnexionForm, ValidationForm
 from .models import Fiche, LigneEffectif, LigneValeur, Producteur, Responsable, Secteur
 from .services import cle, comparer_lignes, debut_semaine, evolution, recapitulatif
@@ -347,6 +348,9 @@ def _rapport(request):
     if secteur:
         producteurs = producteurs.filter(produits__secteur=secteur).distinct()
     r = rapports.rapport_periode(debut, fin, producteurs)
+    r["prets_lignes"], r["prets_tot"] = portefeuille_prets(jusqu_au=fin, producteurs=producteurs)
+    if request.est_admin and not secteur:
+        r["centre"] = bilan_centre(debut, fin)
     r.update({"choix": choix, "periodes": rapports.PERIODES, "secteurs": secteurs, "secteur": secteur,
               "courbe": _courbe(r["courbe_points"]), "est_admin": request.est_admin, "onglet": "rapport",
               "requete": request.GET.urlencode()})

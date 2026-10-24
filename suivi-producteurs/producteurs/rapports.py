@@ -81,7 +81,7 @@ def rapport_periode(debut, fin, producteurs):
         dans_periode = [x for x in prets_p if x.date >= debut]
         accordes = sum(x.montant for x in dans_periode if x.type == Pret.TYPE_PRET)
         rembourses = sum(x.montant for x in dans_periode if x.type == Pret.TYPE_REMBOURSEMENT)
-        encours = sum(x.montant if x.type == Pret.TYPE_PRET else -x.montant for x in prets_p)
+        encours = sum(x.total_du if x.type == Pret.TYPE_PRET else -x.montant for x in prets_p)
         ligne = {
             "producteur": p, "fiches": fs, "nb": len(fs),
             "validees": sum(1 for f in fs if f.statut == Fiche.VALIDEE),
@@ -320,12 +320,82 @@ def classeur_excel(r, genere_par="", sigle="CIAF/CE", organisation=""):
           v.get_mode_paiement_display(), v.client]
          for f in fiches for v in f.ventes.all()],
         8, [26, 12, 20, 30, 10, 10, 14, 14, 14, 24])
-    feuille_operations(
-        "Prêts",
-        ["Producteur", "Date", "Type", "Description", "Montant (F)"],
-        [[l["producteur"].nom, x.date, x.get_type_display(), x.description,
-          x.montant if x.type == Pret.TYPE_PRET else -x.montant] for l in r["lignes"] for x in l["prets"]],
-        5, [26, 12, 24, 34, 14])
+    # --- Prêts : un prêt par ligne, avec intérêts, remboursements, reste et état à la fin de la période
+    etats = {"rembourse": "Remboursé", "retard": "En retard", "en_cours": "En cours"}
+    lignes_prets = r.get("prets_lignes", [])
+    ws = wb.create_sheet("Prêts")
+    bandeau(ws, f"{sigle} · Prêts aux producteurs (situation au {r['fin']:%d/%m/%Y})")
+    entete(ws, 5, ["Producteur", "Date", "Objet", "Prêté (F)", "Taux (%)", "Intérêts (F)", "À rembourser (F)",
+                   "Remboursé (F)", "Reste (F)", "% remboursé", "Échéance", "État"])
+    for i, l in enumerate(lignes_prets):
+        n = 6 + i
+        p = l["pret"]
+        ws.append([p.producteur.nom, p.date, p.description, p.montant, float(p.taux_interet), f"=D{n}*E{n}/100",
+                   f"=D{n}+F{n}", l["rembourse"], f"=G{n}-H{n}", f'=IF(G{n}=0,"",H{n}/G{n})', p.echeance,
+                   etats[l["statut"]]])
+    if lignes_prets:
+        fin_l = 5 + len(lignes_prets)
+        t = fin_l + 1
+        ws.cell(t, 1, "Total").font = gras
+        for col in "DFGHI":
+            c = ws[f"{col}{t}"]
+            c.value, c.font = f"=SUM({col}6:{col}{fin_l})", gras
+        ws[f"J{t}"] = f'=IF(G{t}=0,"",H{t}/G{t})'
+        ws[f"J{t}"].font = gras
+        for ligne in ws.iter_rows(min_row=6, max_row=t, min_col=1, max_col=12):
+            for cell in ligne:
+                cell.border = bord
+                cell.number_format = {"B": "dd/mm/yyyy", "K": "dd/mm/yyyy", "J": pct, "E": "0.##"}.get(cell.column_letter, nombre)
+        ws.conditional_formatting.add(f"L6:L{fin_l}", CellIsRule(operator="equal", formula=['"En retard"'], font=Font(color=ROUGE, bold=True)))
+    else:
+        ws.cell(6, 1, "Aucun prêt.").font = Font(italic=True, color="5D6B60")
+    largeurs(ws, [26, 12, 30, 13, 9, 12, 15, 14, 13, 12, 12, 12])
+    ws.freeze_panes = "A6"
+
+    # --- Caisse du centre (administrateur seulement)
+    centre = r.get("centre")
+    if centre:
+        ws = wb.create_sheet("Caisse du centre")
+        bandeau(ws, f"{sigle} · Caisse du centre")
+        entete(ws, 5, ["Date", "Catégorie", "Sens", "Description", "Payé à / reçu de", "Paiement", "Entrée (F)", "Sortie (F)"])
+        ops = sorted(centre["operations"], key=lambda o: (o.date, o.pk))
+        for o in ops:
+            ws.append([o.date, o.categorie.nom, "Entrée" if o.est_entree else "Sortie", o.libelle, o.tiers,
+                       o.get_mode_paiement_display(), o.montant if o.est_entree else None,
+                       None if o.est_entree else o.montant])
+        n = 6 + len(ops)
+        ws.cell(n, 1, "Total des opérations").font = gras
+        for col in "GH":
+            c = ws[f"{col}{n}"]
+            c.value, c.font = (f"=SUM({col}6:{col}{n - 1})" if ops else 0), gras
+        for ligne in ws.iter_rows(min_row=6, max_row=n, min_col=1, max_col=8):
+            for cell in ligne:
+                cell.border = bord
+                cell.number_format = "dd/mm/yyyy" if cell.column_letter == "A" else nombre
+        n += 2
+        ws.cell(n, 1, "Bilan de la caisse").font = Font(bold=True, color=VERT, size=12)
+        n += 1
+        entete(ws, n, ["Rubrique", "Montant (F)", "% du total"])
+        for titre_bloc, lignes_bloc, total in (("Sorties d'argent", centre["sorties"], centre["total_sorties"]),
+                                               ("Entrées d'argent", centre["entrees"], centre["total_entrees"])):
+            n += 1
+            ws.cell(n, 1, titre_bloc).font = gras
+            ws.cell(n, 2, total).font = gras
+            ws.cell(n, 2).number_format = nombre
+            for l in lignes_bloc:
+                n += 1
+                ws.cell(n, 1, f"    {l['categorie']}")
+                ws.cell(n, 2, l["montant"]).number_format = nombre
+                ws.cell(n, 3, l["pct"] / 100).number_format = pct
+        n += 2
+        for lib, val in (("Solde de la période (entrées − sorties)", centre["solde_periode"]),
+                         ("Solde cumulé depuis le début", centre["solde_cumule"])):
+            ws.cell(n, 1, lib).font = gras
+            c = ws.cell(n, 2, val)
+            c.font, c.number_format = gras, nombre
+            n += 1
+        largeurs(ws, [40, 30, 10, 36, 22, 14, 14, 14])
+        ws.freeze_panes = "A6"
 
     # --- Bilan financier
     ws = wb.create_sheet("Bilan financier")

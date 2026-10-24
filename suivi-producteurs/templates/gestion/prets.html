@@ -3,35 +3,88 @@
 {% block titre %}Prêts{% endblock %}
 {% block contenu %}
 <section class="section">
-  <h1>Prêts et remboursements</h1>
-  <div class="kpis"><div class="kpi"><span class="label">Total des prêts en cours</span><span class="val">{{ total|nombre }} <small>F CFA</small></span><span class="muted small">Prêts accordés − remboursements reçus</span></div></div>
+  <h1>Prêts aux producteurs</h1>
+  <div class="kpis">
+    <div class="kpi"><span class="label">Total prêté</span><span class="val">{{ tot.capital|default:0|nombre }} <small>F CFA</small></span><span class="muted small">{{ tot.nb|default:0 }} prêt{{ tot.nb|pluralize }}</span></div>
+    <div class="kpi"><span class="label">Intérêts attendus</span><span class="val">{{ tot.interets|default:0|nombre }} <small>F CFA</small></span><span class="muted small">À rembourser au total : {{ tot.du|default:0|nombre }} F</span></div>
+    <div class="kpi"><span class="label">Déjà remboursé</span><span class="val pos">{{ tot.rembourse|default:0|nombre }} <small>F CFA</small></span>
+      <div class="jauge" title="{{ tot.pct_rembourse }} % remboursé"><span style="width: {{ tot.pct_rembourse|stringformat:'s'|cut:',' }}%"></span></div>
+      <span class="muted small"><b>{{ tot.pct_rembourse|default:0 }} %</b> remboursé · <b>{{ tot.pct_non_rembourse|default:0 }} %</b> non remboursé</span></div>
+    <div class="kpi"><span class="label">Reste à rembourser</span><span class="val">{{ tot.reste|default:0|nombre }} <small>F CFA</small></span></div>
+    <div class="kpi"><span class="label">En retard</span><span class="val {% if tot.retard %}neg{% endif %}">{{ tot.retard|default:0|nombre }} <small>F CFA</small></span><span class="muted small">{{ tot.nb_retard|default:0 }} prêt{{ tot.nb_retard|pluralize }} dont l'échéance est dépassée</span></div>
+  </div>
 </section>
+
+<div class="grid2">
+  <section class="section">
+    <h2>Accorder un prêt</h2>
+    <form method="post" class="card formulaire">
+      {% csrf_token %}<input type="hidden" name="action" value="accorder">
+      {% for champ in form %}{% include "gestion/_champ.html" %}{% endfor %}
+      <p class="muted small">Le montant à rembourser = montant prêté + intérêts. Exemple : 100 000 F à 10 % → 110 000 F à rembourser.</p>
+      <div class="row"><button class="btn primary" type="submit">Accorder le prêt</button></div>
+    </form>
+  </section>
+  <section class="section">
+    <h2>Enregistrer un remboursement</h2>
+    <form method="post" class="card formulaire">
+      {% csrf_token %}<input type="hidden" name="action" value="rembourser">
+      {% if rembt.fields.pret_rembourse.queryset.exists %}
+        {% for champ in rembt %}{% include "gestion/_champ.html" %}{% endfor %}
+        <div class="row"><button class="btn primary" type="submit">Enregistrer le remboursement</button></div>
+      {% else %}
+        <p class="muted">Aucun prêt en cours : rien à rembourser pour l'instant.</p>
+      {% endif %}
+    </form>
+  </section>
+</div>
+
 <section class="section">
-  <h2>Enregistrer un prêt ou un remboursement</h2>
-  <form method="post" class="card formulaire ligne-form">
-    {% csrf_token %}
-    {% for champ in form %}{% include "gestion/_champ.html" %}{% endfor %}
-    <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div>
-  </form>
-</section>
-{% if encours %}
-<section class="section">
-  <h2>Reste dû par producteur</h2>
-  <div class="tablebox"><table><tbody>
-    {% for e in encours %}<tr><td>{{ e.producteur.nom }}</td><td class="num">{{ e.montant|nombre }} F</td></tr>{% endfor %}
-  </tbody></table></div>
-</section>
-{% endif %}
-<section class="section">
-  <h2>Historique</h2>
+  <div class="row between">
+    <h2>Suivi des prêts</h2>
+    <div class="row">
+      <a class="btn {% if not filtre %}primary{% endif %}" href="?">Tous</a>
+      <a class="btn {% if filtre == 'retard' %}primary{% endif %}" href="?statut=retard">En retard ({{ tot.nb_retard|default:0 }})</a>
+      <a class="btn {% if filtre == 'en_cours' %}primary{% endif %}" href="?statut=en_cours">En cours ({{ tot.nb_en_cours|default:0 }})</a>
+      <a class="btn {% if filtre == 'rembourse' %}primary{% endif %}" href="?statut=rembourse">Remboursés ({{ tot.nb_rembourse|default:0 }})</a>
+    </div>
+  </div>
   <div class="tablebox"><table>
-    <thead><tr><th>Date</th><th>Producteur</th><th>Type</th><th>Description</th><th class="num">Montant</th><th></th></tr></thead>
+    <thead><tr><th>Producteur</th><th>État</th><th>Objet</th><th class="num">Prêté</th><th class="num">Taux</th><th class="num">À rembourser</th><th class="num">Remboursé</th><th class="num">Reste</th><th>Prêté le</th><th>Échéance</th><th></th></tr></thead>
     <tbody>
-    {% for p in prets %}
-      <tr><td>{{ p.date|date:"d/m/Y" }}</td><td>{{ p.producteur.nom }}</td><td>{{ p.get_type_display }}</td><td class="texte">{{ p.description }}</td><td class="num">{{ p.montant|nombre }}</td>
-        <td><form method="post">{% csrf_token %}<button class="btn link danger" type="submit" name="supprimer" value="{{ p.pk }}">Supprimer</button></form></td></tr>
+    {% for l in lignes %}{% with p=l.pret %}
+      <tr>
+        <td><a href="{% url 'fiche_producteur' p.producteur_id %}">{{ p.producteur.nom }}</a></td>
+        <td>{% with statut=l.statut %}{% include "gestion/_statut_pret.html" %}{% endwith %}</td>
+        <td class="texte">{{ p.description|default:"—" }}</td>
+        <td class="num">{{ p.montant|nombre }}</td>
+        <td class="num">{{ p.taux_interet|floatformat:"-2" }} %</td>
+        <td class="num">{{ p.total_du|nombre }}</td>
+        <td class="num pos">{{ l.rembourse|nombre }}<div class="jauge petite" title="{{ l.pct }} %"><span style="width: {{ l.pct|stringformat:'s' }}%"></span></div><span class="muted small">{{ l.pct }} %</span></td>
+        <td class="num">{{ l.reste|nombre }}</td>
+        <td>{{ p.date|date:"d/m/Y" }}</td>
+        <td>{{ p.echeance|date:"d/m/Y"|default:"—" }}</td>
+        <td><form method="post">{% csrf_token %}<button class="btn link danger" type="submit" name="supprimer" value="{{ p.pk }}" title="Supprime le prêt et ses remboursements">Supprimer</button></form></td>
+      </tr>
+    {% endwith %}{% empty %}
+      <tr><td colspan="11" class="muted">Aucun prêt{% if filtre %} dans cette catégorie{% endif %}.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section class="section">
+  <h2>Derniers remboursements reçus</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Date</th><th>Producteur</th><th>Prêt concerné</th><th>Remarque</th><th class="num">Montant</th><th></th></tr></thead>
+    <tbody>
+    {% for r in remboursements %}
+      <tr><td>{{ r.date|date:"d/m/Y" }}</td><td>{{ r.producteur.nom }}</td>
+        <td>{% if r.pret_rembourse %}prêt du {{ r.pret_rembourse.date|date:"d/m/Y" }} ({{ r.pret_rembourse.montant|nombre }} F){% else %}—{% endif %}</td>
+        <td class="texte">{{ r.description }}</td><td class="num">{{ r.montant|nombre }}</td>
+        <td><form method="post">{% csrf_token %}<button class="btn link danger" type="submit" name="supprimer" value="{{ r.pk }}">Supprimer</button></form></td></tr>
     {% empty %}
-      <tr><td colspan="6" class="muted">Aucun prêt enregistré.</td></tr>
+      <tr><td colspan="6" class="muted">Aucun remboursement pour l'instant.</td></tr>
     {% endfor %}
     </tbody>
   </table></div>

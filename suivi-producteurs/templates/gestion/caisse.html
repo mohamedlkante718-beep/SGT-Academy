@@ -1,0 +1,76 @@
+{% extends "gestion/base_gestion.html" %}
+{% load suivi %}
+{% block titre %}Caisse du centre{% endblock %}
+{% block contenu %}
+<section class="section">
+  <h1>Caisse du centre — {{ titre }}</h1>
+  <form method="get" class="row" id="filtres">
+    <div class="field"><label for="periode">Période</label>
+      <select id="periode" name="periode">{% for code, nom in periodes %}<option value="{{ code }}" {% if code == choix %}selected{% endif %}>{{ nom }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="debut">Du</label><input type="date" id="debut" name="debut" value="{{ debut|date:'Y-m-d' }}"></div>
+    <div class="field"><label for="fin">Au</label><input type="date" id="fin" name="fin" value="{{ fin|date:'Y-m-d' }}"></div>
+    <button class="btn primary" type="submit">Afficher</button>
+  </form>
+  <div class="kpis">
+    <div class="kpi"><span class="label">Entrées d'argent</span><span class="val pos">{{ b.total_entrees|nombre }} <small>F CFA</small></span><span class="muted small">dont remboursements de prêts</span></div>
+    <div class="kpi"><span class="label">Sorties d'argent</span><span class="val neg">{{ b.total_sorties|nombre }} <small>F CFA</small></span><span class="muted small">dépenses + prêts accordés</span></div>
+    <div class="kpi"><span class="label">Solde de la période</span><span class="val {% if b.solde_periode < 0 %}neg{% else %}pos{% endif %}">{{ b.solde_periode|nombre }} <small>F CFA</small></span><span class="muted small">Entrées − sorties</span></div>
+    <div class="kpi"><span class="label">Solde cumulé</span><span class="val {% if b.solde_cumule < 0 %}neg{% endif %}">{{ b.solde_cumule|nombre }} <small>F CFA</small></span><span class="muted small">Depuis le début, jusqu'au {{ fin|date:"j M Y" }}</span></div>
+    <div class="kpi"><span class="label">Prêts : % remboursé</span><span class="val">{{ b.portefeuille.pct_rembourse|default:0 }} %</span><span class="muted small">Reste dû : {{ b.portefeuille.reste|default:0|nombre }} F · en retard : {{ b.portefeuille.retard|default:0|nombre }} F</span></div>
+  </div>
+</section>
+
+<div class="grid2">
+  <section class="section">
+    <h2>Sorties par catégorie</h2>
+    <div class="tablebox"><table><tbody>
+      {% for l in b.sorties %}<tr><td>{{ l.categorie }}{% if l.pret %} <a class="small" href="{% url 'prets' %}">voir</a>{% endif %}</td><td><div class="jauge petite rouge"><span style="width: {{ l.pct|stringformat:'s' }}%"></span></div></td><td class="num">{{ l.pct }} %</td><td class="num">{{ l.montant|nombre }}</td></tr>
+      {% empty %}<tr><td class="muted">Aucune sortie sur la période.</td></tr>{% endfor %}
+    </tbody>{% if b.sorties %}<tfoot><tr><td>Total des sorties</td><td></td><td></td><td class="num">{{ b.total_sorties|nombre }}</td></tr></tfoot>{% endif %}</table></div>
+  </section>
+  <section class="section">
+    <h2>Entrées par catégorie</h2>
+    <div class="tablebox"><table><tbody>
+      {% for l in b.entrees %}<tr><td>{{ l.categorie }}</td><td><div class="jauge petite"><span style="width: {{ l.pct|stringformat:'s' }}%"></span></div></td><td class="num">{{ l.pct }} %</td><td class="num">{{ l.montant|nombre }}</td></tr>
+      {% empty %}<tr><td class="muted">Aucune entrée sur la période.</td></tr>{% endfor %}
+    </tbody>{% if b.entrees %}<tfoot><tr><td>Total des entrées</td><td></td><td></td><td class="num">{{ b.total_entrees|nombre }}</td></tr></tfoot>{% endif %}</table></div>
+  </section>
+</div>
+<p class="muted small">Pour information, hors caisse du centre : sur la même période, les producteurs ont déclaré {{ b.depenses_producteurs|nombre }} F de dépenses et {{ b.ventes_producteurs|nombre }} F de ventes sur leurs fiches.</p>
+
+<section class="section">
+  <h2>Enregistrer une dépense ou une entrée</h2>
+  <form method="post" enctype="multipart/form-data" class="card formulaire ligne-form">
+    {% csrf_token %}
+    {% for champ in form %}{% include "gestion/_champ.html" %}{% endfor %}
+    <div class="row"><button class="btn primary" type="submit">Enregistrer</button></div>
+  </form>
+  <p class="muted small">Il manque une catégorie (ex. « Loyer », « Sécurité ») ? Ajoutez-la dans <a href="{% url 'admin:producteurs_categoriecaisse_changelist' %}">Catégories de caisse</a>.</p>
+</section>
+
+<section class="section">
+  <h2>Opérations de la période ({{ b.operations|length }})</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Date</th><th>Catégorie</th><th>Description</th><th>Payé à / reçu de</th><th>Paiement</th><th class="num">Entrée</th><th class="num">Sortie</th><th>Pièce</th><th></th></tr></thead>
+    <tbody>
+    {% for o in b.operations %}
+      <tr><td>{{ o.date|date:"d/m/Y" }}</td><td>{{ o.categorie.nom }}</td><td class="texte">{{ o.libelle }}</td><td>{{ o.tiers|default:"—" }}</td><td>{{ o.get_mode_paiement_display|default:"—" }}</td>
+        <td class="num pos">{% if o.est_entree %}{{ o.montant|nombre }}{% endif %}</td><td class="num neg">{% if not o.est_entree %}{{ o.montant|nombre }}{% endif %}</td>
+        <td>{% if o.piece %}<a href="{{ o.piece.url }}" target="_blank" rel="noopener">voir</a>{% else %}—{% endif %}</td>
+        <td><form method="post">{% csrf_token %}<button class="btn link danger" type="submit" name="supprimer" value="{{ o.pk }}">Supprimer</button></form></td></tr>
+    {% empty %}
+      <tr><td colspan="9" class="muted">Aucune opération sur cette période. Utilisez le formulaire ci-dessus pour enregistrer la première.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var f = document.getElementById("filtres"), p = document.getElementById("periode");
+  ["debut", "fin"].forEach(function (id) { document.getElementById(id).addEventListener("change", function () { p.value = "libre"; }); });
+  p.addEventListener("change", function () { if (p.value !== "libre") f.submit(); });
+})();
+</script>
+{% endblock %}

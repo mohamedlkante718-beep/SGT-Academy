@@ -4,7 +4,8 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.db import transaction
 from django.forms import inlineformset_factory
 
-from .models import Depense, Fiche, Pret, Producteur, Produit, Responsable, Secteur, Vente
+from .models import (CategorieCaisse, Depense, Fiche, OperationCaisse, Pret, Producteur, Produit, Responsable,
+                     Secteur, Vente)
 
 
 def normaliser_telephone(valeur):
@@ -183,7 +184,86 @@ VentesFormSet = inlineformset_factory(
 
 
 class PretForm(forms.ModelForm):
+    """Accorder un prêt ou une avance à un producteur."""
+
     class Meta:
         model = Pret
-        fields = ["producteur", "date", "type", "montant", "description"]
-        widgets = {"date": DATE, "montant": MONTANT}
+        fields = ["producteur", "date", "montant", "taux_interet", "echeance", "description"]
+        widgets = {"date": DATE, "echeance": DATE, "montant": MONTANT,
+                   "taux_interet": forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.5", "min": 0}),
+                   "description": forms.TextInput(attrs={"placeholder": "Ex. achat de 2 sacs d'aliment"})}
+        labels = {"montant": "Montant prêté (F CFA)", "description": "Objet du prêt"}
+
+    def clean(self):
+        data = super().clean()
+        if data.get("echeance") and data.get("date") and data["echeance"] < data["date"]:
+            self.add_error("echeance", "L'échéance doit être après la date du prêt.")
+        return data
+
+    def save(self, commit=True):
+        self.instance.type = Pret.TYPE_PRET
+        return super().save(commit)
+
+
+class PretChoix(forms.ModelChoiceField):
+    def label_from_instance(self, p):
+        return (f"{p.producteur.nom} — prêt du {p.date:%d/%m/%Y} — reste {p.reste:,} F".replace(",", "\u202f"))
+
+
+class RemboursementForm(forms.ModelForm):
+    """Enregistrer un remboursement reçu, rattaché à un prêt."""
+
+    pret_rembourse = PretChoix(queryset=Pret.objects.none(), label="Prêt remboursé")
+
+    class Meta:
+        model = Pret
+        fields = ["pret_rembourse", "date", "montant", "description"]
+        widgets = {"date": DATE, "montant": MONTANT,
+                   "description": forms.TextInput(attrs={"placeholder": "Ex. remboursement en espèces"})}
+        labels = {"montant": "Montant remboursé (F CFA)", "description": "Remarque"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        ouverts = [p.pk for p in Pret.objects.filter(type=Pret.TYPE_PRET).prefetch_related("remboursements")
+                   if p.reste > 0]
+        self.fields["pret_rembourse"].queryset = (Pret.objects.filter(pk__in=ouverts)
+                                                  .select_related("producteur").order_by("producteur__nom", "date"))
+
+    def clean(self):
+        data = super().clean()
+        pret, montant = data.get("pret_rembourse"), data.get("montant")
+        if pret and montant and montant > pret.reste:
+            self.add_error("montant", f"Le reste à rembourser sur ce prêt est de {pret.reste:,} F.".replace(",", "\u202f"))
+        return data
+
+    def save(self, commit=True):
+        self.instance.type = Pret.TYPE_REMBOURSEMENT
+        self.instance.producteur = self.cleaned_data["pret_rembourse"].producteur
+        return super().save(commit)
+
+
+class CategorieChoix(forms.ModelChoiceField):
+    """Liste des catégories regroupées : sorties (dépenses) puis entrées."""
+
+    def __init__(self, **kwargs):
+        super().__init__(queryset=CategorieCaisse.objects.filter(actif=True), **kwargs)
+
+    def grouper(self):
+        groupes = {"Sorties d'argent (dépenses)": [], "Entrées d'argent": []}
+        for c in self.queryset:
+            groupes["Entrées d'argent" if c.sens == CategorieCaisse.ENTREE else "Sorties d'argent (dépenses)"].append((c.pk, c.nom))
+        self.choices = [("", "---------")] + [(k, v) for k, v in groupes.items() if v]
+
+
+class OperationCaisseForm(forms.ModelForm):
+    categorie = CategorieChoix(label="Catégorie")
+
+    class Meta:
+        model = OperationCaisse
+        fields = ["date", "categorie", "libelle", "montant", "mode_paiement", "tiers", "piece"]
+        widgets = {"date": DATE, "montant": MONTANT,
+                   "libelle": forms.TextInput(attrs={"placeholder": "Ex. salaire du gardien – octobre"})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["categorie"].grouper()

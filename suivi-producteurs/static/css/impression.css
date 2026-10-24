@@ -43,3 +43,4 @@ table.compact { border: 1px solid var(--line); border-radius: 6px; font-size: .8
 .page .pill { font-size: .7rem; padding: 1px 6px; }
 .logo-rapport { height: 64px; width: auto; max-width: 140px; object-fit: contain; }
 .entete-titre { flex: 1; min-width: 0; }
+@media print { .page h2, .page h3 { break-after: avoid; } }

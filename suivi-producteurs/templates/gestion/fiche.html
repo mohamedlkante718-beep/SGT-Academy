@@ -75,8 +75,10 @@
 {% endif %}
 
 <section class="section"><h2>C. Prêts et remboursements · en cours : {{ prets_en_cours|nombre }} F</h2>
-  {% if prets %}<div class="tablebox"><table><thead><tr><th>Date</th><th>Type</th><th>Description</th><th class="num">Montant</th></tr></thead><tbody>
-  {% for p in prets %}<tr><td>{{ p.date|date:"d/m/Y" }}</td><td>{{ p.get_type_display }}</td><td class="texte">{{ p.description }}</td><td class="num">{{ p.montant|nombre }}</td></tr>{% endfor %}
+  {% if prets %}<div class="tablebox"><table><thead><tr><th>Date</th><th>Opération</th><th>Objet</th><th class="num">Montant</th><th class="num">Taux</th><th class="num">À rembourser</th><th class="num">Reste</th><th>Échéance</th><th>État</th></tr></thead><tbody>
+  {% for p in prets %}<tr><td>{{ p.date|date:"d/m/Y" }}</td><td>{{ p.get_type_display }}</td><td class="texte">{{ p.description }}</td><td class="num">{{ p.montant|nombre }}</td>
+    {% if p.type == "pret" %}<td class="num">{{ p.taux_interet|floatformat:"-2" }} %</td><td class="num">{{ p.total_du|nombre }}</td><td class="num">{{ p.reste|nombre }}</td><td>{{ p.echeance|date:"d/m/Y"|default:"—" }}</td><td>{% with statut=p.statut %}{% include "gestion/_statut_pret.html" %}{% endwith %}</td>
+    {% else %}<td></td><td></td><td></td><td></td><td></td>{% endif %}</tr>{% endfor %}
   </tbody></table></div>{% else %}<p class="muted small">Aucun prêt enregistré.</p>{% endif %}
   {% if est_admin %}<p><a href="{% url 'prets' %}?producteur={{ producteur.pk }}">+ Enregistrer un prêt ou un remboursement</a></p>{% endif %}
 </section>

@@ -61,6 +61,39 @@
 </section>
 {% endif %}
 
+{% if prets_lignes %}
+<section class="section bloc-rapport">
+  <h2>Prêts aux producteurs (situation au {{ fin|date:"j F Y" }})</h2>
+  <div class="kpis">
+    <div class="kpi"><span class="label">Prêté + intérêts</span><span class="val">{{ prets_tot.du|default:0|nombre }} <small>F CFA</small></span><span class="muted small">dont intérêts : {{ prets_tot.interets|default:0|nombre }} F</span></div>
+    <div class="kpi"><span class="label">Remboursé</span><span class="val pos">{{ prets_tot.pct_rembourse|default:0 }} %</span><span class="muted small">{{ prets_tot.rembourse|default:0|nombre }} F</span></div>
+    <div class="kpi"><span class="label">Non remboursé</span><span class="val">{{ prets_tot.pct_non_rembourse|default:0 }} %</span><span class="muted small">Reste dû : {{ prets_tot.reste|default:0|nombre }} F</span></div>
+    <div class="kpi"><span class="label">En retard</span><span class="val {% if prets_tot.retard %}neg{% endif %}">{{ prets_tot.retard|default:0|nombre }} <small>F CFA</small></span><span class="muted small">{{ prets_tot.nb_retard|default:0 }} prêt{{ prets_tot.nb_retard|pluralize }}</span></div>
+  </div>
+  <div class="tablebox"><table>
+    <thead><tr><th>Producteur</th><th>Date</th><th class="num">Prêté</th><th class="num">Taux</th><th class="num">À rembourser</th><th class="num">Remboursé</th><th class="num">Reste</th><th class="num">%</th><th>Échéance</th><th>État</th></tr></thead>
+    <tbody>{% for l in prets_lignes %}{% with p=l.pret %}<tr><td>{{ p.producteur.nom }}</td><td>{{ p.date|date:"d/m/Y" }}</td><td class="num">{{ p.montant|nombre }}</td><td class="num">{{ p.taux_interet|floatformat:"-2" }} %</td><td class="num">{{ p.total_du|nombre }}</td><td class="num">{{ l.rembourse|nombre }}</td><td class="num">{{ l.reste|nombre }}</td><td class="num">{{ l.pct }} %</td><td>{{ p.echeance|date:"d/m/Y"|default:"—" }}</td><td>{% with statut=l.statut %}{% include "gestion/_statut_pret.html" %}{% endwith %}</td></tr>{% endwith %}{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+
+{% if centre %}
+<section class="section bloc-rapport">
+  <h2>Caisse du centre</h2>
+  <div class="kpis">
+    <div class="kpi"><span class="label">Entrées d'argent</span><span class="val pos">{{ centre.total_entrees|nombre }} <small>F CFA</small></span></div>
+    <div class="kpi"><span class="label">Sorties d'argent</span><span class="val neg">{{ centre.total_sorties|nombre }} <small>F CFA</small></span></div>
+    <div class="kpi"><span class="label">Solde de la période</span><span class="val {% if centre.solde_periode < 0 %}neg{% endif %}">{{ centre.solde_periode|nombre }} <small>F CFA</small></span><span class="muted small">Solde cumulé : {{ centre.solde_cumule|nombre }} F</span></div>
+  </div>
+  <div class="grid2">
+    <table class="compact"><thead><tr><th>Sorties</th><th class="num">%</th><th class="num">Montant</th></tr></thead>
+      <tbody>{% for l in centre.sorties %}<tr><td>{{ l.categorie }}</td><td class="num">{{ l.pct }} %</td><td class="num">{{ l.montant|nombre }}</td></tr>{% empty %}<tr><td colspan="3" class="muted">Aucune.</td></tr>{% endfor %}</tbody></table>
+    <table class="compact"><thead><tr><th>Entrées</th><th class="num">%</th><th class="num">Montant</th></tr></thead>
+      <tbody>{% for l in centre.entrees %}<tr><td>{{ l.categorie }}</td><td class="num">{{ l.pct }} %</td><td class="num">{{ l.montant|nombre }}</td></tr>{% empty %}<tr><td colspan="3" class="muted">Aucune.</td></tr>{% endfor %}</tbody></table>
+  </div>
+</section>
+{% endif %}
+
 {% if detail %}
 <section class="section">
   <h2>Détail par producteur</h2>
