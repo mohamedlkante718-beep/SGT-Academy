@@ -111,6 +111,11 @@ puis remplissez les lignes « Dépenses » et « Ventes » en bas de la page.
 **Prêts** : dans **Prêts**, ajoutez chaque prêt ou avance accordé et chaque remboursement reçu.
 Le tableau de bord calcule le montant restant dû.
 
+**Sans réseau (hors ligne)** : sur le téléphone du producteur, l'accueil et la fiche de la semaine restent disponibles
+sans réseau, à condition d'avoir ouvert l'application une fois avec du réseau. Une fiche envoyée sans réseau est gardée sur
+le téléphone (bandeau « fiche en attente d'envoi ») et part automatiquement dès que le réseau revient. Il ne faut pas se
+déconnecter tant qu'une fiche est en attente. Les pages de l'administrateur et des responsables demandent du réseau.
+
 **Supprimer une fiche envoyée par erreur** : le producteur peut la supprimer lui-même depuis son téléphone
 (lien « Supprimer cette fiche » en bas de sa fiche) tant qu'elle n'est pas validée. Une fois validée, seul
 l'administrateur peut la supprimer (lien « Supprimer cette fiche » en bas de la fiche du producteur). Une page demande

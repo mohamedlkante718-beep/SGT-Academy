@@ -155,3 +155,4 @@ a.danger { color: var(--down); font-weight: 600; }
 .jauge span { display: block; height: 100%; background: var(--up); border-radius: 999px; }
 .jauge.rouge span { background: var(--down); }
 .jauge.petite { height: 6px; min-width: 70px; }
+.notice.info { border: 1px solid var(--accent); background: var(--accent-soft); color: var(--ink); }
