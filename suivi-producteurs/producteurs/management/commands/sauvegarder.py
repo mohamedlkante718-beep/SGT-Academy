@@ -1,56 +1,25 @@
 """Copie de sécurité de la base de données (fiches, prêts, caisse…) et des fichiers envoyés (logo, reçus).
 
-    python manage.py sauvegarder              → ~/sauvegardes-suivi/suivi-AAAA-MM-JJ-HHMM.zip
+    python manage.py sauvegarder              → ~/sauvegardes-suivi/suivi-AAAA-MM-JJ-HHMMSS.zip
     python manage.py sauvegarder --garder 30  → garde les 30 dernières copies
 
-À programmer chaque jour dans PythonAnywhere (onglet « Tasks »)."""
+L'application fait déjà une copie par jour toute seule ; cette commande sert avant une mise à jour."""
 
-import sqlite3
-import zipfile
-from datetime import datetime
-from pathlib import Path
-
-from django.conf import settings
 from django.core.management.base import BaseCommand
+
+from producteurs.sauvegarde import dossier_sauvegardes, faire_sauvegarde
 
 
 class Command(BaseCommand):
     help = "Fait une copie de sécurité de la base de données et des fichiers envoyés."
 
     def add_arguments(self, parser):
-        parser.add_argument("--dossier", default=str(Path.home() / "sauvegardes-suivi"))
+        parser.add_argument("--dossier", default=None)
         parser.add_argument("--garder", type=int, default=30, help="nombre de copies à conserver")
 
     def handle(self, dossier, garder, **options):
-        base = Path(settings.DATABASES["default"]["NAME"])
-        if not base.exists():
+        cible = faire_sauvegarde(dossier or dossier_sauvegardes(), garder)
+        if cible is None:
             self.stdout.write("Pas encore de base de données : rien à sauvegarder.")
-            return
-        dossier = Path(dossier)
-        dossier.mkdir(parents=True, exist_ok=True)
-        dossier.chmod(0o700)
-        cible = dossier / f"suivi-{datetime.now():%Y-%m-%d-%H%M%S}.zip"
-        # Copie cohérente même si quelqu'un enregistre une fiche au même moment. Elle est faite dans le
-        # dossier des sauvegardes (pas dans /tmp), et les connexions sont bien fermées avant de zipper.
-        copie = dossier / f".copie-{cible.stem}.sqlite3"
-        src, dst = sqlite3.connect(base), sqlite3.connect(copie)
-        try:
-            src.backup(dst)
-        finally:
-            dst.close()
-            src.close()
-        try:
-            with zipfile.ZipFile(cible, "w", zipfile.ZIP_DEFLATED) as z:
-                z.write(copie, "db.sqlite3")
-                media = Path(settings.MEDIA_ROOT)
-                if media.exists():
-                    for f in media.rglob("*"):
-                        if f.is_file():
-                            z.write(f, Path("media") / f.relative_to(media))
-        finally:
-            copie.unlink(missing_ok=True)
-        cible.chmod(0o600)
-        anciennes = sorted(dossier.glob("suivi-*.zip"))[:-garder] if garder > 0 else []
-        for f in anciennes:
-            f.unlink()
-        self.stdout.write(self.style.SUCCESS(f"Sauvegarde faite : {cible}"))
+        else:
+            self.stdout.write(self.style.SUCCESS(f"Sauvegarde faite : {cible}"))

@@ -150,8 +150,9 @@ feuille « Mois par mois » avec le détail par producteur.
   d'installation et dans le menu **Réglages** ; `/admin/` ne répond plus ;
 - l'administrateur est déconnecté après 8 heures sans activité ; le **journal des connexions** est dans Réglages ;
 - HTTPS obligatoire, cookies protégés, interdiction d'afficher le site dans un autre site, aucun script externe ;
-- **copie de sécurité** : `python manage.py sauvegarder` (faite aussi à chaque mise à jour) dans `~/sauvegardes-suivi/`.
-  À programmer chaque jour dans l'onglet **Tasks** de PythonAnywhere.
+- **copie de sécurité** : l'application en fait une par jour toute seule (à la première visite de la journée) dans
+  `~/sauvegardes-suivi/`, et une à chaque mise à jour ; les 30 dernières sont gardées. Le menu **Sauvegarde**
+  télécharge une copie toute fraîche sur l'ordinateur (à faire de temps en temps, sur une clé USB par exemple).
 
 **Rapports** (menu **Rapports**, pour l'administrateur et les responsables, chacun sur ses producteurs) :
 choisissez une période (ce mois-ci, le mois dernier, ce trimestre, une année au choix ou des dates libres) et, si besoin, un secteur.

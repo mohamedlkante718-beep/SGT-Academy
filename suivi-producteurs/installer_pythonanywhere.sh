@@ -109,9 +109,8 @@ cat <<FIN
                           Directory  $DOSSIER/staticfiles
 $CERTIFICAT  • Force HTTPS         : Enabled
 
- Copie de sécurité automatique chaque jour : onglet « Tasks », ajoutez
- une tâche quotidienne (Daily) avec cette commande :
-   $PY $DOSSIER/manage.py sauvegarder
+ Copies de sécurité : l'application en fait une par jour toute seule
+ (dossier ~/sauvegardes-suivi). Menu « Sauvegarde » pour en télécharger une.
 
  Puis cliquez sur le gros bouton vert « Reload ».
  Ouvrez ensuite : https://$DOMAINE/gestion/

@@ -36,6 +36,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "producteurs.securite.EnTetesSecurite",
     "producteurs.securite.SessionAdministrateur",
+    "producteurs.sauvegarde.SauvegardeQuotidienne",
 ]
 
 ROOT_URLCONF = "suivi.urls"
@@ -102,6 +103,10 @@ CONNEXION_ESSAIS_MAX = 5
 CONNEXION_ESSAIS_MAX_IP = 20
 CONNEXION_BLOCAGE_MINUTES = 15
 SESSION_ADMIN_SECONDES = 60 * 60 * 8  # administrateur : déconnecté après 8 heures sans activité
+
+# Copies de sécurité : une par jour, faite par l'application elle-même (en production seulement).
+SAUVEGARDES_DIR = os.environ.get("DJANGO_SAUVEGARDES_DIR", str(Path.home() / "sauvegardes-suivi"))
+SAUVEGARDE_AUTO = not DEBUG
 
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_HTTPONLY = True

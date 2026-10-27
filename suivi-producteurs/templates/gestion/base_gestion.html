@@ -10,5 +10,6 @@
 <a href="{% url 'prets' %}" {% if onglet == 'prets' %}aria-current="page"{% endif %}>Prêts</a>
 <a href="{% url 'caisse' %}" {% if onglet == 'caisse' %}aria-current="page"{% endif %}>Caisse du centre</a>
 <a href="{% url 'admin:index' %}">Réglages</a>
+<a href="{% url 'sauvegarde' %}" title="Télécharger une copie de toutes les données">Sauvegarde</a>
 {% endif %}
 {% endblock %}

@@ -207,3 +207,12 @@ def fiche_supprimer(request, pk):
         return redirect("fiche_producteur", pk=fiche.producteur_id)
     return _page(request, "gestion/confirmer_suppression.html", "tableau", fiche=fiche,
                  retour=f"{reverse('fiche_producteur', args=[fiche.producteur_id])}?semaine={fiche.semaine}")
+
+
+@admin_requis
+def sauvegarde(request):
+    """Fait une copie de sécurité toute fraîche et la télécharge sur l'ordinateur de l'administrateur."""
+    from django.http import FileResponse
+    from .sauvegarde import faire_sauvegarde
+    cible = faire_sauvegarde()
+    return FileResponse(open(cible, "rb"), as_attachment=True, filename=cible.name)

@@ -688,3 +688,33 @@ class SecuriteTests(TestCase):
             zips = list((Path(d) / "sauv").glob("suivi-*.zip"))
             self.assertEqual(len(zips), 1)
             self.assertIn("db.sqlite3", zipfile.ZipFile(zips[0]).namelist())
+
+
+class SauvegardeTests(TestCase):
+    def test_telechargement_et_copie_quotidienne(self):
+        import tempfile
+        import zipfile
+        from io import BytesIO
+        from pathlib import Path
+        from django.test import override_settings
+        get_user_model().objects.create_user("chef", password="motdepasse", is_staff=True)
+        with tempfile.TemporaryDirectory() as d, override_settings(SAUVEGARDES_DIR=d, SAUVEGARDE_AUTO=True):
+            # La base de test est en mémoire : on sauvegarde une vraie petite base SQLite.
+            import sqlite3
+            base = Path(d) / "base.sqlite3"
+            c = sqlite3.connect(base)
+            c.execute("create table t (x)")
+            c.close()
+            with override_settings(DATABASES={"default": {"NAME": base}}):
+                from .sauvegarde import SauvegardeQuotidienne, faire_sauvegarde
+                m = SauvegardeQuotidienne(lambda r: "ok")
+                m(None)
+                m(None)  # pas de 2e copie le même jour
+                self.assertEqual(len(list(Path(d).glob("suivi-*.zip"))), 1)
+                self.assertIsNotNone(faire_sauvegarde())
+            self.client.login(username="chef", password="motdepasse")
+            from unittest import mock
+            with mock.patch("producteurs.sauvegarde.faire_sauvegarde", return_value=sorted(Path(d).glob("suivi-*.zip"))[-1]):
+                r = self.client.get(reverse("sauvegarde"))
+            self.assertEqual(r.status_code, 200)
+            self.assertIn("db.sqlite3", zipfile.ZipFile(BytesIO(b"".join(r.streaming_content))).namelist())
