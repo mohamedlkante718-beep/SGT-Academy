@@ -6,7 +6,6 @@
 À programmer chaque jour dans PythonAnywhere (onglet « Tasks »)."""
 
 import sqlite3
-import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -31,11 +30,16 @@ class Command(BaseCommand):
         dossier.mkdir(parents=True, exist_ok=True)
         dossier.chmod(0o700)
         cible = dossier / f"suivi-{datetime.now():%Y-%m-%d-%H%M%S}.zip"
-        with tempfile.TemporaryDirectory() as tmp:
-            copie = Path(tmp) / "db.sqlite3"
-            # Copie cohérente même si quelqu'un enregistre une fiche au même moment.
-            with sqlite3.connect(base) as src, sqlite3.connect(copie) as dst:
-                src.backup(dst)
+        # Copie cohérente même si quelqu'un enregistre une fiche au même moment. Elle est faite dans le
+        # dossier des sauvegardes (pas dans /tmp), et les connexions sont bien fermées avant de zipper.
+        copie = dossier / f".copie-{cible.stem}.sqlite3"
+        src, dst = sqlite3.connect(base), sqlite3.connect(copie)
+        try:
+            src.backup(dst)
+        finally:
+            dst.close()
+            src.close()
+        try:
             with zipfile.ZipFile(cible, "w", zipfile.ZIP_DEFLATED) as z:
                 z.write(copie, "db.sqlite3")
                 media = Path(settings.MEDIA_ROOT)
@@ -43,6 +47,8 @@ class Command(BaseCommand):
                     for f in media.rglob("*"):
                         if f.is_file():
                             z.write(f, Path("media") / f.relative_to(media))
+        finally:
+            copie.unlink(missing_ok=True)
         cible.chmod(0o600)
         anciennes = sorted(dossier.glob("suivi-*.zip"))[:-garder] if garder > 0 else []
         for f in anciennes:

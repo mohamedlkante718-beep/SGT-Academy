@@ -44,7 +44,7 @@ echo "== 3/6 Base de données (copie de sécurité d'abord)"
 # Adresse cachée de l'administration Django, choisie au hasard une seule fois.
 [ -f .adresse_admin ] || echo "admin-$("$PY" -c "import secrets; print(secrets.token_hex(4))")/" > .adresse_admin
 chmod 600 .adresse_admin
-"$PY" manage.py sauvegarder
+"$PY" manage.py sauvegarder || echo "   (Copie de sécurité impossible cette fois-ci : l'installation continue.)"
 "$PY" manage.py migrate --noinput
 
 echo "== 4/6 Fiches Excel d'octobre (aucun doublon si on relance)"
