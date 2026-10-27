@@ -47,8 +47,12 @@ chmod 600 .adresse_admin
 "$PY" manage.py sauvegarder || echo "   (Copie de sécurité impossible cette fois-ci : l'installation continue.)"
 "$PY" manage.py migrate --noinput
 
-echo "== 4/6 Fiches Excel d'octobre (aucun doublon si on relance)"
-"$PY" manage.py charger_fiches_excel
+echo "== 4/6 Fiches Excel d'octobre (seulement à la première installation)"
+if "$PY" manage.py shell -v0 -c "from producteurs.models import Producteur; import sys; sys.exit(0 if Producteur.objects.exists() else 1)"; then
+    echo "   Déjà chargées : rien à faire (les producteurs renommés ou supprimés ne sont pas recréés)."
+else
+    "$PY" manage.py charger_fiches_excel
+fi
 
 echo "== 5/6 Fichiers de style et images"
 "$PY" manage.py collectstatic --noinput -v0
