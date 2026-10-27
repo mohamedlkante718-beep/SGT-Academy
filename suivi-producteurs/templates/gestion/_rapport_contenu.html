@@ -28,6 +28,26 @@
   </div>
 </section>
 
+{% if mois_par_mois %}
+<section class="section bloc-rapport">
+  <h2>Mois par mois</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Mois</th><th class="num">Fiches</th><th class="num">Valeur des productions</th><th>Évolution</th><th class="num">Dépenses</th><th class="num">Ventes</th><th class="num">Résultat net</th></tr></thead>
+    <tbody>{% for m in mois_par_mois %}<tr>
+      <td>{{ m.nom }}</td>
+      <td class="num">{{ m.nb }}{% if m.nb %} <span class="muted">({{ m.producteurs }} prod.)</span>{% endif %}</td>
+      <td class="num">{% if m.valeur is not None %}{{ m.valeur|nombre }}{% else %}—{% endif %}</td>
+      <td>{% pastille m.evo " F" %}</td>
+      <td class="num">{{ m.depenses|nombre }}</td>
+      <td class="num">{{ m.ventes|nombre }}</td>
+      <td class="num {% if m.resultat < 0 %}neg{% endif %}">{{ m.resultat|nombre }}</td>
+    </tr>{% endfor %}</tbody>
+    <tfoot><tr><td>Total</td><td class="num">{{ tot.nb|default:0 }}</td><td class="num">{{ tot.fin|default:0|nombre }}</td><td></td><td class="num">{{ tot.depenses|default:0|nombre }}</td><td class="num">{{ tot.ventes|default:0|nombre }}</td><td class="num">{{ tot.resultat|default:0|nombre }}</td></tr></tfoot>
+  </table></div>
+  <p class="muted small">Valeur des productions : somme de la dernière fiche du mois de chaque producteur ayant rempli ce mois-là. En total : valeur à la fin de la période.</p>
+</section>
+{% endif %}
+
 <section class="section bloc-rapport">
   <h2>Récapitulatif par producteur</h2>
   <div class="tablebox"><table>

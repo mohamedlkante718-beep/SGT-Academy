@@ -19,7 +19,8 @@ from . import rapports
 from .caisse import bilan_centre, portefeuille_prets
 from .forms import ConnexionForm, ValidationForm
 from .models import Fiche, LigneEffectif, LigneValeur, Producteur, Responsable, Secteur
-from .services import cle, comparer_lignes, debut_semaine, evolution, recapitulatif
+from .services import (annees_disponibles, calendrier, cle, comparer_lignes, debut_semaine, evolution,
+                       recapitulatif)
 
 
 def _logo():
@@ -100,6 +101,36 @@ def accueil(request):
     })
 
 
+def _annee(request, choix):
+    try:
+        annee = int(request.GET.get("annee", ""))
+    except ValueError:
+        annee = date.today().year
+    return annee if annee in choix else date.today().year
+
+
+@login_required
+def mes_semaines(request):
+    """Toutes les semaines de l'année, pour remplir celles qui manquent (depuis janvier)."""
+    producteur = getattr(request.user, "producteur", None)
+    if producteur is None:
+        return redirect("accueil")
+    annees = annees_disponibles(producteur.fiches.all())
+    return render(request, "mobile/semaines.html", {
+        "producteur": producteur, "cal": calendrier(producteur, _annee(request, annees)), "annees": annees,
+    })
+
+
+@suivi_requis
+def semaines_producteur(request, pk):
+    producteur = get_object_or_404(request.producteurs_visibles, pk=pk)
+    annees = annees_disponibles(producteur.fiches.all())
+    return render(request, "gestion/semaines.html", {
+        "producteur": producteur, "cal": calendrier(producteur, _annee(request, annees)), "annees": annees,
+        "est_admin": request.est_admin, "onglet": "tableau",
+    })
+
+
 # ---------------------------------------------------------------- mobile (producteurs)
 
 def _ligne_de(lignes, produit):
@@ -128,14 +159,27 @@ def saisie(request, semaine=None):
     producteur = getattr(request.user, "producteur", None)
     if producteur is None:
         return redirect("accueil")
+    return _saisie(request, producteur, semaine)
 
+
+@never_cache
+@login_required
+def saisie_admin(request, pk, semaine):
+    """L'administrateur remplit la fiche d'un producteur à sa place (semaines passées, producteur sans téléphone)."""
+    if not request.user.is_staff:
+        return redirect("accueil")
+    return _saisie(request, get_object_or_404(Producteur, pk=pk), semaine, admin=True)
+
+
+def _saisie(request, producteur, semaine, admin=False):
     semaine = debut_semaine(_date_ou_404(semaine) if semaine else None)
     if semaine > debut_semaine() + timedelta(days=7):
         messages.error(request, "On ne peut pas saisir une semaine aussi lointaine.")
-        return redirect("accueil")
+        return redirect("semaines_producteur", pk=producteur.pk) if admin else redirect("accueil")
     fiche = producteur.fiches.filter(semaine=semaine).first()
     precedente = producteur.fiche_precedente(semaine)
-    verrouillee = bool(fiche and fiche.statut == Fiche.VALIDEE)
+    # L'administrateur peut toujours corriger ; le producteur ne touche plus à une fiche validée.
+    verrouillee = bool(fiche and fiche.statut == Fiche.VALIDEE and not admin)
 
     eff = list(fiche.effectifs.all()) if fiche else []
     val = list(fiche.valeurs.all()) if fiche else []
@@ -169,7 +213,12 @@ def saisie(request, semaine=None):
             if fiche is None:
                 fiche = Fiche(producteur=producteur, semaine=semaine)
             fiche.observations = request.POST.get("observations", "").strip()
-            fiche.statut, fiche.saisie_par = Fiche.SOUMISE, request.user
+            fiche.saisie_par = request.user
+            if admin:
+                # Saisie faite par l'administrateur lui-même : la fiche est validée d'office.
+                fiche.statut, fiche.valide_par, fiche.valide_le = Fiche.VALIDEE, request.user, timezone.now()
+            else:
+                fiche.statut = Fiche.SOUMISE
             fiche.save()
             for l in lignes:
                 p = l["produit"]
@@ -179,7 +228,12 @@ def saisie(request, semaine=None):
                         ancienne.delete()
                     if l[champ] is not None:
                         modele.objects.create(fiche=fiche, produit=p, libelle=p.nom, **{attr: l[champ]})
+        if admin:
+            messages.success(request, f"Fiche de {producteur.nom}, semaine du {fiche.semaine:%d/%m/%Y}, enregistrée.")
+            return redirect(f"{reverse('semaines_producteur', args=[producteur.pk])}?annee={fiche.semaine.year}")
         messages.success(request, f"Fiche de la semaine du {fiche.semaine:%d/%m} envoyée à votre responsable.")
+        if request.POST.get("retour") == "semaines":
+            return redirect(f"{reverse('mes_semaines')}?annee={fiche.semaine.year}")
         return redirect("accueil")
     if erreurs:
         messages.error(request, "Certaines cases contiennent autre chose qu'un nombre. Corrigez-les puis enregistrez.")
@@ -198,6 +252,8 @@ def saisie(request, semaine=None):
         "observations": request.POST.get("observations") if request.method == "POST" else (fiche.observations if fiche else ""),
         "semaine_precedente": semaine - timedelta(days=7),
         "semaine_suivante": semaine + timedelta(days=7) if semaine < debut_semaine() else None,
+        "admin": admin,
+        "retour": request.GET.get("retour") or request.POST.get("retour") or "",
     })
 
 
@@ -341,7 +397,10 @@ def _rapport(request):
         d = f = None
     if choix == "libre" and not (d and f):
         choix = "mois"
-    debut, fin = rapports.bornes(choix, debut=d, fin=f)
+    annees = annees_disponibles(Fiche.objects.filter(producteur__in=request.producteurs_visibles))
+    annee = int(request.GET["annee"]) if (request.GET.get("annee") or "").isdigit() else None
+    annee = annee if annee in annees else annees[0]
+    debut, fin = rapports.bornes(choix, debut=d, fin=f, annee=annee)
     producteurs = request.producteurs_visibles.filter(actif=True)
     secteurs = Secteur.objects.filter(actif=True, produits__producteurs__in=producteurs).distinct()
     secteur = secteurs.filter(pk=request.GET.get("secteur")).first() if (request.GET.get("secteur") or "").isdigit() else None
@@ -352,6 +411,7 @@ def _rapport(request):
     if request.est_admin and not secteur:
         r["centre"] = bilan_centre(debut, fin)
     r.update({"choix": choix, "periodes": rapports.PERIODES, "secteurs": secteurs, "secteur": secteur,
+              "annees": annees, "annee": annee,
               "courbe": _courbe(r["courbe_points"]), "est_admin": request.est_admin, "onglet": "rapport",
               "requete": request.GET.urlencode()})
     return r

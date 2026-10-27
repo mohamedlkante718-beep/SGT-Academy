@@ -1,0 +1,11 @@
+{% extends "gestion/base_gestion.html" %}
+{% block titre %}Semaines de {{ producteur.nom }}{% endblock %}
+{% block contenu %}
+<section class="section">
+  <p><a href="{% url 'fiche_producteur' producteur.pk %}">‹ Retour à {{ producteur.nom }}</a></p>
+  <h1>{{ producteur.nom }} : toutes les semaines</h1>
+  {% if est_admin %}<p class="muted small">Cliquez sur une semaine pour remplir ou corriger la fiche à la place du producteur
+    (par exemple pour reprendre ses chiffres depuis janvier). Une fiche remplie par l'administrateur est validée d'office.</p>{% endif %}
+  {% include "_calendrier.html" with pour_admin=est_admin %}
+</section>
+{% endblock %}

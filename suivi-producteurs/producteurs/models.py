@@ -346,3 +346,21 @@ class OperationCaisse(models.Model):
     @property
     def est_entree(self):
         return self.categorie.sens == CategorieCaisse.ENTREE
+
+
+class TentativeConnexion(models.Model):
+    """Journal des connexions : sert à bloquer les essais répétés de codes PIN (piratage) et à voir
+    qui s'est connecté, quand et depuis quelle adresse."""
+
+    identifiant = models.CharField(max_length=150, db_index=True)
+    ip = models.GenericIPAddressField("adresse IP", null=True, blank=True)
+    reussie = models.BooleanField("réussie", default=False)
+    quand = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-quand"]
+        verbose_name = "connexion"
+        verbose_name_plural = "journal des connexions"
+
+    def __str__(self):
+        return f"{self.identifiant} — {'réussie' if self.reussie else 'refusée'}"

@@ -17,7 +17,7 @@ PERIODES = [
     ("mois", "Ce mois-ci"),
     ("mois_precedent", "Le mois dernier"),
     ("trimestre", "Ce trimestre"),
-    ("annee", "Cette année"),
+    ("annee", "Une année entière"),
     ("libre", "Dates libres"),
 ]
 
@@ -25,8 +25,9 @@ MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août
         "novembre", "décembre"]
 
 
-def bornes(choix, aujourd_hui=None, debut=None, fin=None):
-    """Dates de début et de fin d'une période prédéfinie, ou des dates libres données."""
+def bornes(choix, aujourd_hui=None, debut=None, fin=None, annee=None):
+    """Dates de début et de fin d'une période prédéfinie, ou des dates libres données.
+    Pour « annee », l'année choisie (par défaut l'année en cours)."""
     j = aujourd_hui or date.today()
     if choix == "mois_precedent":
         dernier = j.replace(day=1) - timedelta(days=1)
@@ -37,13 +38,16 @@ def bornes(choix, aujourd_hui=None, debut=None, fin=None):
         f = date(j.year, premier_mois + 2, calendar.monthrange(j.year, premier_mois + 2)[1])
         return d, f
     if choix == "annee":
-        return date(j.year, 1, 1), date(j.year, 12, 31)
+        a = annee or j.year
+        return date(a, 1, 1), date(a, 12, 31)
     if choix == "libre" and debut and fin:
         return (debut, fin) if debut <= fin else (fin, debut)
     return j.replace(day=1), j.replace(day=calendar.monthrange(j.year, j.month)[1])
 
 
 def titre_periode(debut, fin):
+    if (debut.month, debut.day, fin.month, fin.day) == (1, 1, 12, 31) and debut.year == fin.year:
+        return f"Année {debut.year}"
     if debut.day == 1 and fin == debut.replace(day=calendar.monthrange(debut.year, debut.month)[1]):
         return f"{MOIS[debut.month - 1].capitalize()} {debut.year}"
     return f"Du {debut:%d/%m/%Y} au {fin:%d/%m/%Y}"
@@ -115,7 +119,41 @@ def rapport_periode(debut, fin, producteurs):
     for d in Depense.objects.filter(fiche__in=fiches):
         depenses_cat[d.get_categorie_display()] += d.montant
 
+    # Mois par mois (rapport annuel ou sur plusieurs mois) : pour tous et pour chaque producteur.
+    mois_par_mois = []
+    if (debut.year, debut.month) != (fin.year, fin.month):
+        mois_cles = []
+        m = debut.replace(day=1)
+        while m <= fin:
+            mois_cles.append((m.year, m.month))
+            m = date(m.year + (m.month == 12), m.month % 12 + 1, 1)
+        for l in lignes:
+            l["mois"] = []
+            for cle_m in mois_cles:
+                fs = [f for f in l["fiches"] if (f.semaine.year, f.semaine.month) == cle_m]
+                dep = sum(f.total_depenses for f in fs)
+                ven = sum(f.total_ventes for f in fs)
+                l["mois"].append({"nb": len(fs), "valeur": fs[-1].total_valeurs if fs else None,
+                                  "depenses": dep, "ventes": ven, "resultat": ven - dep})
+        for i, (a, mo) in enumerate(mois_cles):
+            parts = [l["mois"][i] for l in lignes]
+            avec = [x for x in parts if x["nb"]]
+            dep = sum(x["depenses"] for x in parts)
+            ven = sum(x["ventes"] for x in parts)
+            mois_par_mois.append({
+                "annee": a, "mois": mo, "nom": f"{MOIS[mo - 1].capitalize()} {a}",
+                "nb": sum(x["nb"] for x in parts), "producteurs": len(avec),
+                "valeur": sum(x["valeur"] for x in avec) if avec else None,
+                "depenses": dep, "ventes": ven, "resultat": ven - dep,
+            })
+        precedent = None
+        for x in mois_par_mois:
+            x["evo"] = evolution(precedent, x["valeur"]) if x["valeur"] is not None else None
+            if x["valeur"] is not None:
+                precedent = x["valeur"]
+
     return {
+        "mois_par_mois": mois_par_mois,
         "debut": debut, "fin": fin, "titre": titre_periode(debut, fin),
         "lignes": lignes, "tot": dict(tot),
         "courbe_points": [{"semaine": s, "total": v} for s, v in sorted(semaines.items())],
@@ -396,6 +434,47 @@ def classeur_excel(r, genere_par="", sigle="CIAF/CE", organisation=""):
             n += 1
         largeurs(ws, [40, 30, 10, 36, 22, 14, 14, 14])
         ws.freeze_panes = "A6"
+
+    # --- Mois par mois (rapport sur plusieurs mois, par exemple annuel)
+    if r.get("mois_par_mois"):
+        ws = wb.create_sheet("Mois par mois", 1)
+        bandeau(ws, f"{sigle} · Suivi des producteurs — Mois par mois")
+        cols_m = ["Mois", "Fiches reçues", "Producteurs ayant rempli", "Valeur des productions (F)",
+                  "Dépenses (F)", "Ventes (F)", "Résultat net (F)"]
+        entete(ws, 5, cols_m)
+        for i, x in enumerate(r["mois_par_mois"]):
+            n = 6 + i
+            ws.append([x["nom"], x["nb"], x["producteurs"], x["valeur"], x["depenses"], x["ventes"], f"=F{n}-E{n}"])
+        fin_l = 5 + len(r["mois_par_mois"])
+        t = fin_l + 1
+        ws.cell(t, 1, "Total de la période").font = gras
+        for col in "BEFG":
+            c = ws[f"{col}{t}"]
+            c.value, c.font = f"=SUM({col}6:{col}{fin_l})", gras
+        for ligne in ws.iter_rows(min_row=6, max_row=t, min_col=1, max_col=len(cols_m)):
+            for cell in ligne:
+                cell.border, cell.number_format = bord, nombre
+        ws.conditional_formatting.add(f"G6:G{t}", CellIsRule(operator="lessThan", formula=["0"], font=Font(color=ROUGE)))
+        n = t + 2
+        ws.cell(n, 1, "Valeur des productions à la fin de chaque mois, par producteur (F CFA)").font = Font(bold=True, color=VERT, size=12)
+        n += 1
+        noms_mois = [x["nom"].split()[0][:4] + "." for x in r["mois_par_mois"]]
+        for titre_bloc, champ in (("Valeur", "valeur"), ("Ventes − dépenses", "resultat")):
+            entete(ws, n, [f"Producteur ({titre_bloc.lower()})"] + noms_mois)
+            n += 1
+            for l in r["lignes"]:
+                ws.cell(n, 1, l["producteur"].nom).border = bord
+                for j, x in enumerate(l.get("mois", []), start=2):
+                    val = x[champ] if (x["nb"] or champ == "resultat") else None
+                    c = ws.cell(n, j, val)
+                    c.number_format, c.border = nombre, bord
+                n += 1
+            n += 1
+            if champ == "valeur":
+                ws.cell(n, 1, "Résultat net de chaque mois (ventes − dépenses), par producteur (F CFA)").font = Font(bold=True, color=VERT, size=12)
+                n += 1
+        largeurs(ws, [30, 12, 13, 16, 14, 14, 14] + [12] * max(0, len(noms_mois) - 6))
+        ws.freeze_panes = "B6"
 
     # --- Bilan financier
     ws = wb.create_sheet("Bilan financier")

@@ -13,8 +13,11 @@ urlpatterns = [
     path("saisie/", views.saisie, name="saisie"),
     path("saisie/<str:semaine>/", views.saisie, name="saisie_semaine"),
     path("saisie/<str:semaine>/supprimer/", views.saisie_supprimer, name="saisie_supprimer"),
+    path("mes-semaines/", views.mes_semaines, name="mes_semaines"),
     path("gestion/", views.tableau, name="tableau"),
     path("gestion/producteur/<int:pk>/", views.fiche_producteur, name="fiche_producteur"),
+    path("gestion/producteur/<int:pk>/semaines/", views.semaines_producteur, name="semaines_producteur"),
+    path("gestion/producteur/<int:pk>/saisie/<str:semaine>/", views.saisie_admin, name="saisie_admin"),
     path("gestion/producteurs/", gestion.producteurs, name="producteurs"),
     path("gestion/producteurs/ajouter/", gestion.producteur_form, name="producteur_ajouter"),
     path("gestion/producteurs/<int:pk>/modifier/", gestion.producteur_form, name="producteur_modifier"),
@@ -33,7 +36,7 @@ urlpatterns = [
     path("gestion/rapport/excel/", views.rapport_excel, name="rapport_excel"),
     path("manifest.webmanifest", views.manifest, name="manifest"),
     path("sw.js", views.service_worker, name="service_worker"),
-    path("admin/", admin.site.urls),
+    path(settings.ADMIN_URL, admin.site.urls),
 ]
 
 # Sert les fichiers de style et les images directement depuis Django, au cas où le réglage

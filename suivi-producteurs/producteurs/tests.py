@@ -553,3 +553,138 @@ class PretsEtCaisseTests(TestCase):
         self.assertRedirects(self.client.get(reverse("prets")), reverse("tableau"))
         rapport = self.client.get(reverse("rapport"))
         self.assertNotIn("centre", rapport.context)
+
+
+class RattrapageEtRapportAnnuelTests(TestCase):
+    """Saisie des semaines passées depuis janvier, et rapport d'une année entière."""
+
+    def setUp(self):
+        self.p = creer_producteur("Awa", "70000001", [produit("Pintades")])
+        self.admin = get_user_model().objects.create_user("chef", password="motdepasse", is_staff=True,
+                                                         is_superuser=True)
+        self.pc = produit("Pintades")
+
+    def test_calendrier_des_semaines_depuis_janvier(self):
+        from .services import calendrier
+        Fiche.objects.create(producteur=self.p, semaine=date(2026, 1, 7))
+        cal = calendrier(self.p, 2026)
+        semaines = [x["semaine"] for m in cal["mois"] for x in m["semaines"]]
+        self.assertEqual(semaines[0], date(2026, 1, 7))   # 1re semaine commençant en 2026 (un mercredi)
+        self.assertEqual(semaines[-1], debut_semaine())   # jusqu'à la semaine en cours
+        self.assertEqual(cal["mois"][0]["nom"], "Janvier")
+        self.assertEqual(cal["remplies"], 1)
+        self.assertEqual(cal["mois"][0]["remplies"], 1)
+
+    def test_le_producteur_remplit_une_semaine_de_fevrier(self):
+        self.client.login(username="70000001", password="1234")
+        r = self.client.get(reverse("mes_semaines"))
+        self.assertContains(r, "Février 2026")
+        self.assertContains(r, reverse("saisie_semaine", args=["2026-02-04"]))
+        r = self.client.post(reverse("saisie_semaine", args=["2026-02-04"]),
+                             {f"q_{self.pc.pk}": "120", f"v_{self.pc.pk}": "300000", "retour": "semaines"})
+        self.assertRedirects(r, reverse("mes_semaines") + "?annee=2026")
+        f = Fiche.objects.get(producteur=self.p, semaine=date(2026, 2, 4))
+        self.assertEqual((f.statut, f.total_valeurs), (Fiche.SOUMISE, 300_000))
+
+    def test_l_administrateur_remplit_a_la_place_du_producteur(self):
+        self.client.login(username="chef", password="motdepasse")
+        self.assertContains(self.client.get(reverse("semaines_producteur", args=[self.p.pk])), "Mars 2026")
+        url = reverse("saisie_admin", args=[self.p.pk, "2026-03-04"])
+        self.assertContains(self.client.get(url), "à la place de Awa")
+        r = self.client.post(url, {f"v_{self.pc.pk}": "250000"})
+        self.assertRedirects(r, reverse("semaines_producteur", args=[self.p.pk]) + "?annee=2026")
+        f = Fiche.objects.get(producteur=self.p, semaine=date(2026, 3, 4))
+        self.assertEqual((f.statut, f.valide_par, f.total_valeurs), (Fiche.VALIDEE, self.admin, 250_000))
+        # Un producteur n'a pas accès à cette page.
+        self.client.login(username="70000001", password="1234")
+        self.assertRedirects(self.client.get(url), reverse("accueil"), fetch_redirect_response=False)
+
+    def test_rapport_annuel_mois_par_mois(self):
+        for semaine, valeur, vente in ((date(2025, 12, 3), 50_000, 0), (date(2026, 1, 7), 100_000, 20_000),
+                                       (date(2026, 1, 28), 120_000, 0), (date(2026, 3, 4), 150_000, 10_000)):
+            f = Fiche.objects.create(producteur=self.p, semaine=semaine, statut=Fiche.VALIDEE)
+            LigneValeur.objects.create(fiche=f, produit=self.pc, libelle=self.pc.nom, montant=valeur)
+            if vente:
+                f.ventes.create(date=semaine, description="Poulets", montant=vente)
+        self.client.login(username="chef", password="motdepasse")
+        r = self.client.get(reverse("rapport"), {"periode": "annee", "annee": "2026"})
+        self.assertEqual((r.context["debut"], r.context["fin"]), (date(2026, 1, 1), date(2026, 12, 31)))
+        self.assertEqual(r.context["titre"], "Année 2026")
+        mois = r.context["mois_par_mois"]
+        self.assertEqual(len(mois), 12)
+        self.assertEqual((mois[0]["valeur"], mois[0]["ventes"], mois[0]["nb"]), (120_000, 20_000, 2))
+        self.assertIsNone(mois[1]["valeur"])
+        self.assertEqual(mois[2]["evo"]["ecart"], 30_000)
+        self.assertEqual(r.context["tot"]["debut"], 50_000)  # fin décembre 2025
+        self.assertIn(2025, r.context["annees"])
+        r = self.client.get(reverse("rapport"), {"periode": "annee", "annee": "2025"})
+        self.assertEqual(r.context["tot"]["fin"], 50_000)
+        # Excel : une feuille « Mois par mois »
+        from io import BytesIO
+        from openpyxl import load_workbook
+        r = self.client.get(reverse("rapport_excel"), {"periode": "annee", "annee": "2026"})
+        wb = load_workbook(BytesIO(r.content))
+        self.assertEqual(wb.sheetnames[1], "Mois par mois")
+        self.assertEqual(wb["Mois par mois"]["A6"].value, "Janvier 2026")
+        self.assertEqual(wb["Mois par mois"]["D6"].value, 120_000)
+
+
+class SecuriteTests(TestCase):
+    def setUp(self):
+        creer_producteur("Awa", "70000001")
+
+    def connexion(self, pin, tel="70000001", ip="10.0.0.1"):
+        return self.client.post(reverse("connexion"), {"username": tel, "password": pin}, REMOTE_ADDR=ip)
+
+    def test_blocage_apres_cinq_codes_faux(self):
+        for _ in range(5):
+            self.assertContains(self.connexion("0000"), "incorrect")
+        r = self.connexion("1234")  # même le bon code est refusé pendant le blocage
+        self.assertContains(r, "connexion est bloquée")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_connexion_reussie_remet_le_compteur_a_zero(self):
+        from .models import TentativeConnexion
+        for _ in range(3):
+            self.connexion("0000")
+        self.assertRedirects(self.connexion("1234"), reverse("accueil"), fetch_redirect_response=False)
+        self.assertFalse(TentativeConnexion.objects.filter(reussie=False).exists())
+        self.assertTrue(TentativeConnexion.objects.filter(reussie=True, identifiant="70000001").exists())
+
+    def test_blocage_par_appareil(self):
+        for i in range(20):
+            self.connexion("0000", tel=f"7100000{i:02d}")
+        self.assertContains(self.connexion("1234"), "connexion est bloquée")
+        self.assertRedirects(self.connexion("1234", ip="10.0.0.2"), reverse("accueil"), fetch_redirect_response=False)
+
+    def test_en_tetes_de_securite(self):
+        r = self.client.get(reverse("connexion"))
+        self.assertIn("frame-ancestors 'none'", r["Content-Security-Policy"])
+        self.assertEqual(r["X-Frame-Options"], "DENY")
+        self.assertEqual(r["X-Content-Type-Options"], "nosniff")
+
+    def test_connexion_administration_passe_par_la_page_protegee(self):
+        r = self.client.get(reverse("admin:login"))
+        self.assertTrue(r["Location"].startswith(reverse("connexion")))
+
+    def test_session_administrateur_courte(self):
+        get_user_model().objects.create_user("chef", password="motdepasse", is_staff=True)
+        self.client.post(reverse("connexion"), {"username": "chef", "password": "motdepasse"})
+        self.client.get(reverse("tableau"))
+        self.assertEqual(self.client.session.get_expiry_age(), 8 * 3600)
+
+    def test_sauvegarde(self):
+        import tempfile
+        import zipfile
+        from pathlib import Path
+        from django.test import override_settings
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d) / "db.sqlite3"
+            import sqlite3
+            with sqlite3.connect(base) as c:
+                c.execute("create table t (x)")
+            with override_settings(DATABASES={"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": base}}):
+                call_command("sauvegarder", dossier=str(Path(d) / "sauv"), verbosity=0, stdout=open("/dev/null", "w"))
+            zips = list((Path(d) / "sauv").glob("suivi-*.zip"))
+            self.assertEqual(len(zips), 1)
+            self.assertIn("db.sqlite3", zipfile.ZipFile(zips[0]).namelist())

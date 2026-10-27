@@ -93,3 +93,39 @@ def recapitulatif(semaine, producteurs):
     tot["resultat"] = tot["ventes"] - tot["depenses"]
     tot["evo"] = evolution(tot["precedent"] if tot["a_precedent"] else None, tot["actuel"])
     return lignes, tot
+
+
+MOIS_NOMS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre",
+             "novembre", "décembre"]
+
+
+def calendrier(producteur, annee):
+    """Toutes les semaines de l'année (jusqu'à la semaine en cours), regroupées par mois, avec la fiche
+    du producteur quand elle existe. Une semaine appartient au mois et à l'année où elle COMMENCE,
+    comme dans les rapports."""
+    premiere = debut_semaine(date(annee, 1, 1))
+    if premiere.year < annee:
+        premiere += timedelta(days=7)
+    derniere = min(debut_semaine(date(annee, 12, 31)), debut_semaine())
+    fiches = {f.semaine: f for f in producteur.fiches.filter(semaine__gte=premiere, semaine__lte=derniere)}
+    mois = []
+    s = premiere
+    while s <= derniere:
+        if not mois or mois[-1]["numero"] != s.month:
+            mois.append({"numero": s.month, "nom": MOIS_NOMS[s.month - 1].capitalize(), "semaines": []})
+        mois[-1]["semaines"].append({"semaine": s, "fin": s + timedelta(days=6), "fiche": fiches.get(s)})
+        s += timedelta(days=7)
+    for m in mois:
+        m["remplies"] = sum(1 for x in m["semaines"] if x["fiche"])
+        m["complet"] = m["remplies"] == len(m["semaines"])
+    total = sum(len(m["semaines"]) for m in mois)
+    return {"annee": annee, "mois": mois, "total": total, "remplies": len(fiches)}
+
+
+def annees_disponibles(fiches):
+    """Années proposées : de la plus ancienne fiche (ou l'an dernier) à l'année en cours."""
+    from django.db.models import Min
+    aujourd_hui = date.today().year
+    premiere = fiches.aggregate(m=Min("semaine"))["m"]
+    debut = min(premiere.year if premiere else aujourd_hui, aujourd_hui - 1)
+    return list(range(aujourd_hui, debut - 1, -1))

@@ -156,3 +156,15 @@ a.danger { color: var(--down); font-weight: 600; }
 .jauge.rouge span { background: var(--down); }
 .jauge.petite { height: 6px; min-width: 70px; }
 .notice.info { border: 1px solid var(--accent); background: var(--accent-soft); color: var(--ink); }
+
+/* Semaines de l'année (rattrapage depuis janvier) */
+.annees { align-items: center; gap: 8px; margin: 8px 0; }
+.annees select { width: auto; }
+details.mois { padding: 0; }
+details.mois > summary { cursor: pointer; padding: 14px 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; list-style: none; }
+details.mois > summary::-webkit-details-marker { display: none; }
+details.mois > summary::after { content: "▾"; color: var(--muted, #5d6b60); }
+details.mois:not([open]) > summary::after { content: "▸"; }
+details.mois .histo { border-top: 1px solid var(--line); }
+details.mois .histo { padding: 0 16px; }
+.lien-semaines { display: block; text-decoration: none; color: inherit; }

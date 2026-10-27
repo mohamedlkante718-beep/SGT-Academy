@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from django.db import transaction
@@ -25,6 +26,23 @@ class ConnexionForm(AuthenticationForm):
         "invalid_login": "Téléphone ou code PIN incorrect. Vérifiez et réessayez.",
         "inactive": "Ce compte est désactivé. Contactez l'administrateur du CIAF/CE.",
     }
+
+    def clean(self):
+        from .securite import adresse_ip, est_bloque, noter
+        identifiant = self.cleaned_data.get("username")
+        ip = adresse_ip(self.request) if self.request else None
+        if est_bloque(identifiant, ip):
+            raise forms.ValidationError(
+                "Trop d'essais avec un code faux. Par sécurité, la connexion est bloquée pendant "
+                f"{settings.CONNEXION_BLOCAGE_MINUTES} minutes. Réessayez plus tard ou demandez un nouveau code "
+                "à l'administrateur.", code="bloque")
+        try:
+            resultat = super().clean()
+        except forms.ValidationError:
+            noter(identifiant, ip, reussie=False)
+            raise
+        noter(identifiant, ip, reussie=True)
+        return resultat
 
     def clean_username(self):
         brut = self.cleaned_data["username"].strip()

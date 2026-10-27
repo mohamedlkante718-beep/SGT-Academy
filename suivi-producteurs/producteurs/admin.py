@@ -4,12 +4,40 @@ from django.db import transaction
 
 from .forms import ProducteurAdminForm, ResponsableAdminForm, lier_compte
 from .models import (CategorieCaisse, Depense, Fiche, LigneEffectif, LigneValeur, OperationCaisse, Parametres, Pret,
-                     Producteur, Produit, Responsable, Secteur, Vente)
+                     Producteur, Produit, Responsable, Secteur, TentativeConnexion, Vente)
 
 admin.site.site_header = f"Suivi des producteurs — {settings.ORGANISATION_SIGLE}"
 admin.site.site_title = f"Suivi {settings.ORGANISATION_SIGLE}"
 admin.site.index_title = "Administration"
 admin.site.site_url = "/gestion/"
+
+
+def _connexion_admin(request, extra_context=None):
+    """Une seule porte d'entrée : la page de connexion de l'application, protégée contre les essais
+    répétés de mots de passe. La page de connexion propre à l'administration Django n'est plus utilisée."""
+    from django.contrib.auth.views import redirect_to_login
+    from django.shortcuts import redirect
+    from django.urls import reverse
+    if request.user.is_authenticated and request.user.is_staff:
+        return redirect(request.GET.get("next") or reverse("admin:index"))
+    return redirect_to_login(request.GET.get("next") or reverse("admin:index"), login_url="connexion")
+
+
+admin.site.login = _connexion_admin
+
+
+@admin.register(TentativeConnexion)
+class TentativeConnexionAdmin(admin.ModelAdmin):
+    """Journal des connexions, en lecture seule."""
+    list_display = ["quand", "identifiant", "reussie", "ip"]
+    list_filter = ["reussie"]
+    search_fields = ["identifiant", "ip"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Parametres)

@@ -40,7 +40,11 @@ echo "== 2/6 Clé secrète"
 chmod 600 .cle_secrete
 export DJANGO_DEBUG=0 DJANGO_ALLOWED_HOSTS="$DOMAINE" DJANGO_SECRET_KEY="$(cat .cle_secrete)"
 
-echo "== 3/6 Base de données"
+echo "== 3/6 Base de données (copie de sécurité d'abord)"
+# Adresse cachée de l'administration Django, choisie au hasard une seule fois.
+[ -f .adresse_admin ] || echo "admin-$("$PY" -c "import secrets; print(secrets.token_hex(4))")/" > .adresse_admin
+chmod 600 .adresse_admin
+"$PY" manage.py sauvegarder
 "$PY" manage.py migrate --noinput
 
 echo "== 4/6 Fiches Excel d'octobre (aucun doublon si on relance)"
@@ -101,7 +105,15 @@ cat <<FIN
                           Directory  $DOSSIER/staticfiles
 $CERTIFICAT  • Force HTTPS         : Enabled
 
+ Copie de sécurité automatique chaque jour : onglet « Tasks », ajoutez
+ une tâche quotidienne (Daily) avec cette commande :
+   $PY $DOSSIER/manage.py sauvegarder
+
  Puis cliquez sur le gros bouton vert « Reload ».
  Ouvrez ensuite : https://$DOMAINE/gestion/
+ Adresse secrète de l'administration (logo, catégories, journal des
+ connexions) — à ne donner à personne :
+   https://$DOMAINE/$(cat .adresse_admin)
+ (Elle est aussi dans le menu « Réglages » quand vous êtes connecté.)
 ============================================================
 FIN

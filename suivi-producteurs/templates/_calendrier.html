@@ -1,0 +1,26 @@
+{% load suivi %}
+<form method="get" class="row annees">
+  <label for="annee">Année</label>
+  <select id="annee" name="annee" onchange="this.form.submit()">
+    {% for a in annees %}<option value="{{ a|stringformat:"d" }}" {% if a == cal.annee %}selected{% endif %}>{{ a|stringformat:"d" }}</option>{% endfor %}
+  </select>
+  <noscript><button class="btn" type="submit">Afficher</button></noscript>
+</form>
+<div class="jauge" title="{{ cal.remplies }} semaines remplies sur {{ cal.total }}"><span style="width:{% widthratio cal.remplies cal.total|default:1 100 %}%"></span></div>
+<p class="small"><b>{{ cal.remplies }}</b> semaine{{ cal.remplies|pluralize }} remplie{{ cal.remplies|pluralize }} sur {{ cal.total }} en {{ cal.annee|stringformat:"d" }}.</p>
+{% for m in cal.mois reversed %}
+<details class="card mois" {% if forloop.first or not m.complet %}open{% endif %}>
+  <summary><b>{{ m.nom }} {{ cal.annee|stringformat:"d" }}</b> <span class="muted small">{{ m.remplies }} / {{ m.semaines|length }} remplie{{ m.remplies|pluralize }}</span></summary>
+  <div class="histo">
+  {% for x in m.semaines %}
+    <a href="{% if pour_admin %}{% url 'saisie_admin' producteur.pk x.semaine|date:'Y-m-d' %}{% else %}{% url 'saisie_semaine' x.semaine|date:'Y-m-d' %}?retour=semaines{% endif %}">
+      <span>Du {{ x.semaine|date:"j F" }} au {{ x.fin|date:"j F" }}
+        {% if x.fiche %}<br><span class="muted small">{{ x.fiche.total_valeurs|nombre }} F CFA</span>{% endif %}</span>
+      {% if x.fiche %}{% statut x.fiche %}{% else %}<span class="pill flat">À remplir</span>{% endif %}
+    </a>
+  {% endfor %}
+  </div>
+</details>
+{% empty %}
+<p class="muted">Aucune semaine à afficher pour {{ cal.annee|stringformat:"d" }}.</p>
+{% endfor %}

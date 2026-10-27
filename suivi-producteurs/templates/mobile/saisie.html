@@ -4,10 +4,20 @@
 {% block corps %}mobile{% endblock %}
 {% block contenu %}
 <section class="section">
+  {% if admin %}
+  <p><a href="{% url 'semaines_producteur' producteur.pk %}?annee={{ semaine|date:'Y' }}">‹ Toutes les semaines de {{ producteur.nom }}</a></p>
   <div class="semnav">
-    <a class="btn link" href="{% url 'saisie_semaine' semaine_precedente|date:'Y-m-d' %}">‹ Semaine d'avant</a>
-    {% if semaine_suivante %}<a class="btn link" href="{% url 'saisie_semaine' semaine_suivante|date:'Y-m-d' %}">Semaine suivante ›</a>{% endif %}
+    <a class="btn link" href="{% url 'saisie_admin' producteur.pk semaine_precedente|date:'Y-m-d' %}">‹ Semaine d'avant</a>
+    {% if semaine_suivante %}<a class="btn link" href="{% url 'saisie_admin' producteur.pk semaine_suivante|date:'Y-m-d' %}">Semaine suivante ›</a>{% endif %}
   </div>
+  <div class="notice info">Vous remplissez la fiche <b>à la place de {{ producteur.nom }}</b>. Elle sera enregistrée comme validée.</div>
+  {% else %}
+  <div class="semnav">
+    <a class="btn link" href="{% url 'saisie_semaine' semaine_precedente|date:'Y-m-d' %}{% if retour %}?retour={{ retour }}{% endif %}">‹ Semaine d'avant</a>
+    {% if semaine_suivante %}<a class="btn link" href="{% url 'saisie_semaine' semaine_suivante|date:'Y-m-d' %}{% if retour %}?retour={{ retour }}{% endif %}">Semaine suivante ›</a>{% endif %}
+  </div>
+  {% if retour == "semaines" %}<p class="small"><a href="{% url 'mes_semaines' %}?annee={{ semaine|date:'Y' }}">‹ Toutes mes semaines</a></p>{% endif %}
+  {% endif %}
   <h1>Semaine du {{ semaine|date:"j F" }} au {{ fin|date:"j F Y" }}</h1>
   {% if fiche.pk %}<p>{% statut fiche %}</p>{% endif %}
   {% if verrouillee %}
@@ -20,10 +30,11 @@
 </section>
 
 {% if not groupes %}
-  <div class="notice warn">L'administrateur ne vous a pas encore attribué de produits. Contactez le {{ sigle }}.</div>
+  <div class="notice warn">{% if admin %}Aucun produit n'est attribué à {{ producteur.nom }} : cochez ses produits dans « Producteurs ».{% else %}L'administrateur ne vous a pas encore attribué de produits. Contactez le {{ sigle }}.{% endif %}</div>
 {% else %}
 <form method="post" id="fiche" class="section">
   {% csrf_token %}
+  {% if retour %}<input type="hidden" name="retour" value="{{ retour }}">{% endif %}
   {% for secteur, lignes in groupes.items %}
   <div class="card">
     <h2>{{ secteur }}</h2>
@@ -54,7 +65,7 @@
     <h2>Observations</h2>
     <textarea name="observations" rows="3" placeholder="État des animaux ou des plants, naissances, maladies, mortalités…" {% if verrouillee %}disabled{% endif %}>{{ observations }}</textarea>
   </div>
-  {% if fiche.pk and not verrouillee %}<p class="small"><a class="danger" href="{% url 'saisie_supprimer' semaine|date:'Y-m-d' %}">Supprimer cette fiche (envoyée par erreur)</a></p>{% endif %}
+  {% if fiche.pk and not verrouillee and not admin %}<p class="small"><a class="danger" href="{% url 'saisie_supprimer' semaine|date:'Y-m-d' %}">Supprimer cette fiche (envoyée par erreur)</a></p>{% endif %}
   <p class="muted small">Laissez vide un produit que vous n'avez pas cette semaine. Il manque un produit ? Demandez à l'administrateur du {{ sigle }} de vous l'attribuer.</p>
 </form>
 {% endif %}
@@ -64,9 +75,9 @@
 <div class="barre"><div class="wrap">
   <div class="totaux"><span><b>Valeur totale</b><span id="total">—</span></span>
     {% if precedente %}<span><b>Semaine d'avant</b>{{ precedente.total_valeurs|nombre }} F</span>{% endif %}</div>
-  <button class="btn primary big" type="submit" form="fiche">Envoyer ma fiche</button>
+  <button class="btn primary big" type="submit" form="fiche">{% if admin %}Enregistrer la fiche{% else %}Envoyer ma fiche{% endif %}</button>
 </div></div>
 {% endif %}
 {% endblock %}
 {% block scripts %}{% load static %}<script src="{% static 'js/saisie.js' %}"></script>
-<script src="{% static 'js/hors_ligne.js' %}"></script>{% endblock %}
+{% if not admin %}<script src="{% static 'js/hors_ligne.js' %}"></script>{% endif %}{% endblock %}

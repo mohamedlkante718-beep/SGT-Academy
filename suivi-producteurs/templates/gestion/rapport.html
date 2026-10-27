@@ -8,6 +8,10 @@
       <select id="periode" name="periode">
         {% for code, nom in periodes %}<option value="{{ code }}" {% if code == choix %}selected{% endif %}>{{ nom }}</option>{% endfor %}
       </select></div>
+    <div class="field"><label for="annee">Année</label>
+      <select id="annee" name="annee">
+        {% for a in annees %}<option value="{{ a|stringformat:"d" }}" {% if a == annee %}selected{% endif %}>{{ a|stringformat:"d" }}</option>{% endfor %}
+      </select></div>
     <div class="field"><label for="debut">Du</label><input type="date" id="debut" name="debut" value="{{ debut|date:'Y-m-d' }}"></div>
     <div class="field"><label for="fin">Au</label><input type="date" id="fin" name="fin" value="{{ fin|date:'Y-m-d' }}"></div>
     {% if secteurs|length > 1 %}<div class="field"><label for="secteur">Secteur</label>
@@ -31,6 +35,7 @@
   var f = document.getElementById("filtres"), p = document.getElementById("periode");
   ["debut", "fin"].forEach(function (id) { document.getElementById(id).addEventListener("change", function () { p.value = "libre"; }); });
   p.addEventListener("change", function () { if (p.value !== "libre") f.submit(); });
+  document.getElementById("annee").addEventListener("change", function () { p.value = "annee"; f.submit(); });
 })();
 </script>
 {% endblock %}

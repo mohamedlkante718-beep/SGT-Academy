@@ -17,6 +17,7 @@
           {% for s, f in semaines %}<option value="{{ s|date:'Y-m-d' }}" {% if s == semaine %}selected{% endif %}>du {{ s|date:"j M" }} au {{ f|date:"j M Y" }}</option>{% endfor %}
         </select></div>{% endif %}
       {% if fiche and est_admin %}<a class="btn primary" href="{{ finances_url }}">Saisir dépenses et ventes</a>{% endif %}
+      <a class="btn" href="{% url 'semaines_producteur' producteur.pk %}">{% if est_admin %}Remplir les semaines passées{% else %}Toutes les semaines{% endif %}</a>
       {% if est_admin %}<a class="btn" href="{% url 'producteur_modifier' producteur.pk %}">Modifier le producteur</a>{% endif %}
     </form>
   </div>

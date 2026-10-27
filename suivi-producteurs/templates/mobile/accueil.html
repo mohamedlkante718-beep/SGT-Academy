@@ -20,6 +20,10 @@
   </div>
 </section>
 <section class="section">
+  <a class="card lien-semaines" href="{% url 'mes_semaines' %}"><b>📅 Remplir les semaines passées</b><br>
+    <span class="muted small">Toutes vos semaines depuis janvier : touchez celles qui manquent pour les remplir.</span></a>
+</section>
+<section class="section">
   <h2>Mes fiches précédentes</h2>
   {% if historique %}
   <div class="card histo">

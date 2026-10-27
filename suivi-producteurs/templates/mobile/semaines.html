@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titre %}Mes semaines{% endblock %}
+{% block corps %}mobile{% endblock %}
+{% block contenu %}
+<section class="section">
+  <p><a class="btn link" href="{% url 'accueil' %}">‹ Accueil</a></p>
+  <h1>Mes semaines depuis janvier</h1>
+  <div class="notice info">Touchez une semaine <b>« À remplir »</b> pour y mettre vos chiffres de cette semaine-là.
+    Si vous n'avez pas le détail de chaque semaine, remplissez au moins <b>la dernière semaine de chaque mois</b>
+    avec ce que vous aviez à la fin du mois.</div>
+  {% include "_calendrier.html" %}
+</section>
+{% endblock %}

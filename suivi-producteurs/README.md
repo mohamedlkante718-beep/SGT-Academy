@@ -129,14 +129,32 @@ intérêts attendus, le **% remboursé et le % non remboursé**, le reste dû et
 centre — salaires, alimentation / cuisine, électricité, eau, réparations, transport et carburant, fournitures,
 communication, intrants, apports du promoteur, subventions, ventes du centre… — avec une photo du reçu si besoin.
 La page donne les totaux par catégorie (en %), le solde de la période et le solde cumulé. Les prêts accordés et les
-remboursements y sont comptés automatiquement. Nouvelles catégories : `/admin/` → **Catégories de caisse**.
+remboursements y sont comptés automatiquement. Nouvelles catégories : **Réglages** → **Catégories de caisse**.
 Les rapports (web, PDF, Excel) contiennent une partie « Prêts » et, pour l'administrateur, « Caisse du centre ».
 
-**Logo** : dans `/admin/`, rubrique **Logo**, cliquez sur **Ajouter**, choisissez l'image (PNG ou JPG), puis **Enregistrer**.
+**Logo** : menu **Réglages**, rubrique **Logo**, cliquez sur **Ajouter**, choisissez l'image (PNG ou JPG), puis **Enregistrer**.
 Il s'affiche en haut des pages, sur la page de connexion et dans le rapport imprimable. Pour le changer, ouvrez la même rubrique.
 
+**Semaines passées (depuis janvier)** : sur son téléphone, le producteur touche **« 📅 Remplir les semaines passées »**.
+Toutes les semaines de l'année s'affichent, mois par mois, avec « À remplir » ou le statut de la fiche. S'il n'a pas le
+détail de chaque semaine, il remplit au moins la dernière semaine de chaque mois. L'administrateur peut aussi le faire
+à sa place : fiche du producteur → **« Remplir les semaines passées »** (la fiche est alors validée d'office).
+
+**Rapport annuel** : menu **Rapports** → période **« Une année entière »** → choisissez l'**année**. Le rapport (web, PDF,
+Excel) ajoute un tableau **mois par mois** (valeur des productions, dépenses, ventes, résultat), et le fichier Excel une
+feuille « Mois par mois » avec le détail par producteur.
+
+**Sécurité** :
+- après **5 codes faux** pour un même numéro (ou 20 depuis un même appareil), la connexion est bloquée **15 minutes** ;
+- l'administration Django a une **adresse secrète** (fichier `.adresse_admin`), affichée à la fin du script
+  d'installation et dans le menu **Réglages** ; `/admin/` ne répond plus ;
+- l'administrateur est déconnecté après 8 heures sans activité ; le **journal des connexions** est dans Réglages ;
+- HTTPS obligatoire, cookies protégés, interdiction d'afficher le site dans un autre site, aucun script externe ;
+- **copie de sécurité** : `python manage.py sauvegarder` (faite aussi à chaque mise à jour) dans `~/sauvegardes-suivi/`.
+  À programmer chaque jour dans l'onglet **Tasks** de PythonAnywhere.
+
 **Rapports** (menu **Rapports**, pour l'administrateur et les responsables, chacun sur ses producteurs) :
-choisissez une période (ce mois-ci, le mois dernier, ce trimestre, cette année ou des dates libres) et, si besoin, un secteur.
+choisissez une période (ce mois-ci, le mois dernier, ce trimestre, une année au choix ou des dates libres) et, si besoin, un secteur.
 Le rapport donne pour chaque producteur la valeur au début et à la fin de la période, l'évolution, les dépenses, les ventes,
 le résultat net et les prêts, avec la courbe semaine par semaine et les dépenses par catégorie. Ensuite :
 - **Version imprimable / PDF** : une page A4 avec en plus le détail produit par produit de chaque producteur.
@@ -151,7 +169,7 @@ Le tableau de bord garde l'export CSV de la semaine et un lien direct vers le ra
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_fiches_excel && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 47 tests
+python manage.py test producteurs   # 60 tests
 ```
 
 ## À venir
