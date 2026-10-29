@@ -18,9 +18,14 @@ def _connexion_admin(request, extra_context=None):
     from django.contrib.auth.views import redirect_to_login
     from django.shortcuts import redirect
     from django.urls import reverse
-    if request.user.is_authenticated and request.user.is_staff:
-        return redirect(request.GET.get("next") or reverse("admin:index"))
-    return redirect_to_login(request.GET.get("next") or reverse("admin:index"), login_url="connexion")
+    from django.utils.http import url_has_allowed_host_and_scheme
+    suite = request.GET.get("next") or ""
+    if not url_has_allowed_host_and_scheme(suite, allowed_hosts={request.get_host()}):
+        suite = reverse("admin:index")
+    if request.user.is_authenticated:
+        # Producteurs et responsables n'entrent jamais ici : retour à leur page.
+        return redirect(suite if request.user.is_staff else "accueil")
+    return redirect_to_login(suite, login_url="connexion")
 
 
 admin.site.login = _connexion_admin

@@ -718,3 +718,19 @@ class SauvegardeTests(TestCase):
                 r = self.client.get(reverse("sauvegarde"))
             self.assertEqual(r.status_code, 200)
             self.assertIn("db.sqlite3", zipfile.ZipFile(BytesIO(b"".join(r.streaming_content))).namelist())
+
+
+class AccesReglagesTests(TestCase):
+    def test_seul_l_administrateur_entre_dans_les_reglages(self):
+        creer_producteur("Awa", "70000001")
+        r = Responsable.objects.create(nom="Traoré", telephone="70000002", utilisateur=compte("70000002"))
+        for tel in ("70000001", "70000002"):
+            self.client.login(username=tel, password="1234")
+            rep = self.client.get(reverse("admin:index"), follow=True)
+            self.assertNotIn(reverse("admin:index"), rep.redirect_chain[-1][0])
+            self.assertNotContains(self.client.get(reverse("tableau"), follow=True), "Réglages")
+            self.client.logout()
+        get_user_model().objects.create_user("chef", password="motdepasse", is_staff=True, is_superuser=True)
+        self.client.login(username="chef", password="motdepasse")
+        self.assertEqual(self.client.get(reverse("admin:index")).status_code, 200)
+        self.assertContains(self.client.get(reverse("tableau")), "Réglages")
