@@ -154,6 +154,18 @@ feuille « Mois par mois » avec le détail par producteur.
   `~/sauvegardes-suivi/`, et une à chaque mise à jour ; les 30 dernières sont gardées. Le menu **Sauvegarde**
   télécharge une copie toute fraîche sur l'ordinateur (à faire de temps en temps, sur une clé USB par exemple).
 
+**Paiement mensuel des producteurs** (menu **Paiements**) :
+1. le **comptable** choisit le mois, coche les producteurs payés et indique les montants (repris du mois précédent
+   pour gagner du temps), puis clique **« Envoyer au promoteur pour validation »** ;
+2. le **promoteur** voit un chiffre rouge sur « Paiements », ouvre le mois et clique **« Valider »**, ou
+   **« Refuser »** avec un commentaire (le comptable corrige et renvoie) ;
+3. quand l'argent est remis, le comptable clique **« Marquer comme payé »** : chaque paiement devient une sortie de la
+   **caisse du centre** (rubrique « Paiement des producteurs »). Un **état de paiement** à imprimer porte une colonne
+   pour la signature de chaque producteur et les visas du comptable et du promoteur.
+
+Comptes : **Réglages → Utilisateurs → Ajouter** (identifiant = numéro de téléphone, mot de passe), puis cochez
+**« Statut équipe »** et ajoutez le groupe **Comptable** ou **Promoteur**. Le super-administrateur peut tout faire.
+
 **Rapports** (menu **Rapports**, pour l'administrateur et les responsables, chacun sur ses producteurs) :
 choisissez une période (ce mois-ci, le mois dernier, ce trimestre, une année au choix ou des dates libres) et, si besoin, un secteur.
 Le rapport donne pour chaque producteur la valeur au début et à la fin de la période, l'évolution, les dépenses, les ventes,
@@ -170,7 +182,7 @@ Le tableau de bord garde l'export CSV de la semaine et un lien direct vers le ra
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_fiches_excel && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 60 tests
+python manage.py test producteurs   # 64 tests
 ```
 
 ## À venir

@@ -4,7 +4,7 @@ from django.db import transaction
 
 from .forms import ProducteurAdminForm, ResponsableAdminForm, lier_compte
 from .models import (CategorieCaisse, Depense, Fiche, LigneEffectif, LigneValeur, OperationCaisse, Parametres, Pret,
-                     Producteur, Produit, Responsable, Secteur, TentativeConnexion, Vente)
+                     PaiementMensuel, Producteur, Produit, Responsable, Secteur, TentativeConnexion, Vente)
 
 admin.site.site_header = f"Suivi des producteurs — {settings.ORGANISATION_SIGLE}"
 admin.site.site_title = f"Suivi {settings.ORGANISATION_SIGLE}"
@@ -216,3 +216,16 @@ class PretAdmin(admin.ModelAdmin):
     list_filter = ["type", "producteur"]
     fields = ["producteur", "date", "type", "montant", "taux_interet", "echeance", "pret_rembourse", "description"]
     date_hierarchy = "date"
+
+
+@admin.register(PaiementMensuel)
+class PaiementMensuelAdmin(admin.ModelAdmin):
+    """Consultation seulement : les paiements se préparent et se valident dans le menu « Paiements »."""
+    list_display = ["mois", "statut", "prepare_par", "valide_par", "date_paiement"]
+    list_filter = ["statut"]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False

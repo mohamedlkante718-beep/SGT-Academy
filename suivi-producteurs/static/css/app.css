@@ -168,3 +168,13 @@ details.mois:not([open]) > summary::after { content: "▸"; }
 details.mois .histo { border-top: 1px solid var(--line); }
 details.mois .histo { padding: 0 16px; }
 .lien-semaines { display: block; text-decoration: none; color: inherit; }
+
+/* Paiements mensuels */
+.badge { display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 999px; background: var(--down); color: #fff; font-size: 0.75rem; font-weight: 700; text-align: center; line-height: 18px; }
+.etapes { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 4px; padding: 0; list-style: none; }
+.etapes li { padding: 4px 10px; border-radius: 999px; background: var(--flat-soft); font-size: 0.85rem; }
+.etapes li.faite { background: var(--up-soft); color: var(--up); font-weight: 600; }
+.etapes li.encours { background: var(--accent); color: #fff; font-weight: 600; }
+table.paie input[type=text] { width: 100%; min-width: 110px; }
+table.paie td.coche { width: 32px; text-align: center; }
+table.paie tr.non-coche td:not(.coche) { opacity: 0.55; }

@@ -40,7 +40,12 @@ def _logo():
 
 def organisation(request):
     """Nom et logo de la structure pour tous les gabarits."""
-    return {"sigle": settings.ORGANISATION_SIGLE, "organisation": settings.ORGANISATION_NOM, "logo": _logo()}
+    ctx = {"sigle": settings.ORGANISATION_SIGLE, "organisation": settings.ORGANISATION_NOM, "logo": _logo()}
+    user = getattr(request, "user", None)
+    if user is not None and user.is_authenticated and user.is_staff:
+        from .paiements import paiements_en_attente
+        ctx["paiements_en_attente"] = paiements_en_attente(user)
+    return ctx
 
 
 class ConnexionView(auth_views.LoginView):

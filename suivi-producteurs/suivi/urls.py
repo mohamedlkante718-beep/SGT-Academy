@@ -4,7 +4,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path, re_path
 from django.views.static import serve
 
-from producteurs import gestion, views
+from producteurs import gestion, paiements, views
 
 urlpatterns = [
     path("", views.accueil, name="accueil"),
@@ -32,6 +32,9 @@ urlpatterns = [
     path("gestion/prets/", gestion.prets, name="prets"),
     path("gestion/caisse/", gestion.caisse, name="caisse"),
     path("gestion/sauvegarde/", gestion.sauvegarde, name="sauvegarde"),
+    path("gestion/paiements/", paiements.paiements, name="paiements"),
+    path("gestion/paiements/<str:mois>/", paiements.paiement_mois, name="paiement_mois"),
+    path("gestion/paiements/<str:mois>/imprimer/", paiements.paiement_imprimer, name="paiement_imprimer"),
     path("gestion/rapport/", views.rapport, name="rapport"),
     path("gestion/rapport/imprimer/", views.rapport_imprimable, name="rapport_imprimable"),
     path("gestion/rapport/excel/", views.rapport_excel, name="rapport_excel"),

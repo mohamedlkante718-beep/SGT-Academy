@@ -1,0 +1,124 @@
+{% extends "gestion/base_gestion.html" %}
+{% load suivi %}
+{% block titre %}Paiement {{ titre }}{% endblock %}
+{% block contenu %}
+<section class="section">
+  <p><a href="{% url 'paiements' %}">‹ Tous les paiements</a></p>
+  <div class="row between">
+    <h1>Paiement de {{ titre|lower }}</h1>
+    {% if paiement %}{% with p=paiement %}{% include "gestion/_statut_paiement.html" %}{% endwith %}{% endif %}
+  </div>
+  {% with s=paiement.statut %}
+  <ol class="etapes">
+    <li class="{% if not paiement or s == 'brouillon' or s == 'refuse' %}encours{% else %}faite{% endif %}">1. Préparation (comptable)</li>
+    <li class="{% if s == 'a_valider' %}encours{% elif s == 'valide' or s == 'paye' %}faite{% endif %}">2. Validation (promoteur)</li>
+    <li class="{% if s == 'valide' %}encours{% elif s == 'paye' %}faite{% endif %}">3. Paiement (comptable)</li>
+  </ol>
+  {% endwith %}
+  {% if paiement %}<p class="muted small">
+    {% if paiement.prepare_par %}Préparé par {{ paiement.prepare_par.first_name|default:paiement.prepare_par.username }}{% if paiement.envoye_le %}, envoyé le {{ paiement.envoye_le|date:"j F à H:i" }}{% endif %}.{% endif %}
+    {% if paiement.valide_le %} {% if paiement.statut == "refuse" %}Refusé{% else %}Validé{% endif %} par {{ paiement.valide_par.first_name|default:paiement.valide_par.username }} le {{ paiement.valide_le|date:"j F à H:i" }}.{% endif %}
+    {% if paiement.date_paiement %} Payé le {{ paiement.date_paiement|date:"j F Y" }} ({{ paiement.get_mode_paiement_display|lower }}).{% endif %}
+  </p>{% endif %}
+  {% if paiement.statut == "refuse" %}<div class="notice warn"><b>Refusé par le promoteur :</b> « {{ paiement.commentaire }} » Corrigez puis renvoyez.</div>
+  {% elif paiement.commentaire and paiement.statut != "a_valider" %}<p>Commentaire du promoteur : « {{ paiement.commentaire }} »</p>{% endif %}
+</section>
+
+{% if modifiable %}
+<form method="post" class="section">
+  {% csrf_token %}
+  <p>Cochez les producteurs payés ce mois-ci et indiquez le montant. {% if repris %}<b>Producteurs et montants repris du dernier paiement :</b> vérifiez-les.{% endif %}
+    Les colonnes en gris aident à décider (chiffres du mois déclarés par le producteur).</p>
+  <div class="tablebox"><table class="paie">
+    <thead><tr><th></th><th>Producteur</th><th class="num">Valeur fin du mois</th><th class="num">Ventes du mois</th><th class="num">Reste des prêts</th><th>Montant à payer (F)</th><th>Motif</th></tr></thead>
+    <tbody>
+    {% for l in lignes %}{% with p=l.producteur %}
+      <tr class="{% if not l.coche %}non-coche{% endif %}">
+        <td class="coche"><input type="checkbox" name="p_{{ p.pk }}" value="1" id="p_{{ p.pk }}" {% if l.coche %}checked{% endif %} aria-label="Payer {{ p.nom }}"></td>
+        <td>{{ p.nom }}{% if not p.actif %} <span class="muted small">(désactivé)</span>{% endif %}</td>
+        <td class="num muted">{% if l.info.valeur is not None %}{{ l.info.valeur|nombre }}{% else %}—{% endif %}</td>
+        <td class="num muted">{{ l.info.ventes|default:0|nombre }}</td>
+        <td class="num muted">{% if l.info.reste_pret %}{{ l.info.reste_pret|nombre }}{% else %}—{% endif %}</td>
+        <td><input type="text" inputmode="numeric" name="m_{{ p.pk }}" value="{% if l.montant_brut is not None %}{{ l.montant_brut }}{% elif l.montant %}{{ l.montant|stringformat:'d' }}{% endif %}" data-montant>
+          {% if l.erreur and l.coche %}<span class="errorlist">{{ l.erreur }}</span>{% endif %}</td>
+        <td><input type="text" name="o_{{ p.pk }}" value="{{ l.motif }}" maxlength="150" placeholder="Ex. prime, achat de production"></td>
+      </tr>
+    {% endwith %}{% empty %}
+      <tr><td colspan="7" class="muted">Aucun producteur actif.</td></tr>
+    {% endfor %}
+    </tbody>
+    <tfoot><tr><td></td><td>Total (<span id="nb-paie">{{ nb }}</span> producteur{{ nb|pluralize }})</td><td></td><td></td><td></td><td class="num"><b id="total-paie">{{ total|nombre }}</b> F</td><td></td></tr></tfoot>
+  </table></div>
+  <div class="row">
+    <button class="btn" type="submit" name="action" value="enregistrer">Enregistrer sans envoyer</button>
+    <button class="btn primary" type="submit" name="action" value="envoyer">Envoyer au promoteur pour validation</button>
+    {% if paiement %}<button class="btn link danger" type="submit" name="action" value="supprimer" formnovalidate>Supprimer ce paiement</button>{% endif %}
+  </div>
+</form>
+
+{% else %}
+<section class="section">
+  {% if not paiement %}
+    <p class="muted">Le comptable n'a pas encore préparé le paiement de ce mois.</p>
+  {% else %}
+  <div class="tablebox"><table>
+    <thead><tr><th>Producteur</th><th>Motif</th><th class="num">Montant</th></tr></thead>
+    <tbody>{% for l in lignes %}<tr><td>{{ l.producteur.nom }}</td><td>{{ l.motif|default:"—" }}</td><td class="num">{{ l.montant|nombre }} F</td></tr>{% endfor %}</tbody>
+    <tfoot><tr><td>Total ({{ nb }} producteur{{ nb|pluralize }})</td><td></td><td class="num">{{ total|nombre }} F</td></tr></tfoot>
+  </table></div>
+  <p><a class="btn" href="{% url 'paiement_imprimer' mois|date:'Y-m' %}">État de paiement à imprimer (signatures)</a></p>
+  {% endif %}
+
+  {% if paiement.statut == "a_valider" %}
+    {% if peut_valider %}
+    <form method="post" class="card section">
+      {% csrf_token %}
+      <h2>Votre décision</h2>
+      <textarea name="commentaire" rows="2" placeholder="Commentaire (obligatoire pour refuser : ce qu'il faut revoir)"></textarea>
+      <div class="row">
+        <button class="btn primary" type="submit" name="action" value="valider">Valider le paiement de {{ total|nombre }} F</button>
+        <button class="btn" type="submit" name="action" value="refuser">Refuser et renvoyer au comptable</button>
+      </div>
+    </form>
+    {% else %}
+    <div class="notice info">En attente de la validation du promoteur.</div>
+    {% endif %}
+  {% elif paiement.statut == "valide" %}
+    {% if peut_preparer %}
+    <form method="post" class="card section formulaire">
+      {% csrf_token %}<input type="hidden" name="action" value="payer">
+      <h2>Enregistrer le paiement</h2>
+      <p class="muted small">Quand l'argent a été remis aux producteurs. Chaque paiement sera ajouté aux sorties de la <b>caisse du centre</b> (rubrique « Paiement des producteurs »).</p>
+      {% for champ in payer %}{% include "gestion/_champ.html" %}{% endfor %}
+      <div class="row"><button class="btn primary" type="submit">Marquer comme payé</button></div>
+    </form>
+    {% else %}
+    <div class="notice info">Validé : en attente du paiement par le comptable.</div>
+    {% endif %}
+  {% elif paiement.statut == "paye" %}
+    <div class="notice info">Payé. Les sorties sont enregistrées dans la <a href="{% url 'caisse' %}">caisse du centre</a>.</div>
+  {% endif %}
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if modifiable %}
+<script>
+/* Total en direct, et la case se coche quand on tape un montant. */
+(function () {
+  function total() {
+    var t = 0, n = 0;
+    document.querySelectorAll("table.paie tbody tr").forEach(function (tr) {
+      var c = tr.querySelector("input[type=checkbox]"), m = tr.querySelector("[data-montant]");
+      tr.classList.toggle("non-coche", !c.checked);
+      if (c.checked) { n += 1; t += parseInt((m.value || "").replace(/\s/g, ""), 10) || 0; }
+    });
+    document.getElementById("total-paie").textContent = t.toLocaleString("fr-FR");
+    document.getElementById("nb-paie").textContent = n;
+  }
+  document.querySelectorAll("[data-montant]").forEach(function (m) {
+    m.addEventListener("input", function () { if (m.value) m.closest("tr").querySelector("input[type=checkbox]").checked = true; total(); });
+  });
+  document.querySelectorAll("table.paie input[type=checkbox]").forEach(function (c) { c.addEventListener("change", total); });
+  total();
+})();
+</script>{% endif %}{% endblock %}

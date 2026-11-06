@@ -364,3 +364,78 @@ class TentativeConnexion(models.Model):
 
     def __str__(self):
         return f"{self.identifiant} — {'réussie' if self.reussie else 'refusée'}"
+
+
+# ---------------------------------------------------------------- paiement mensuel des producteurs
+
+GROUPE_COMPTABLE, GROUPE_PROMOTEUR = "Comptable", "Promoteur"
+
+
+def _dans_groupe(user, groupe):
+    return user.is_authenticated and (user.is_superuser or user.groups.filter(name=groupe).exists())
+
+
+def peut_preparer_paiements(user):
+    """Le comptable (ou le super-administrateur) choisit les producteurs et les montants du mois."""
+    return _dans_groupe(user, GROUPE_COMPTABLE)
+
+
+def peut_valider_paiements(user):
+    """Le promoteur (ou le super-administrateur) valide ou refuse le paiement du mois."""
+    return _dans_groupe(user, GROUPE_PROMOTEUR)
+
+
+class PaiementMensuel(models.Model):
+    """Paiement d'un mois : préparé par le comptable, validé par le promoteur, puis payé (sortie de caisse)."""
+
+    BROUILLON, A_VALIDER, VALIDE, REFUSE, PAYE = "brouillon", "a_valider", "valide", "refuse", "paye"
+    STATUTS = [(BROUILLON, "En préparation"), (A_VALIDER, "À valider par le promoteur"), (VALIDE, "Validé, à payer"),
+               (REFUSE, "Refusé, à revoir"), (PAYE, "Payé")]
+
+    mois = models.DateField("mois", unique=True, help_text="Premier jour du mois payé.")
+    statut = models.CharField(max_length=12, choices=STATUTS, default=BROUILLON)
+    prepare_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="+", verbose_name="préparé par")
+    envoye_le = models.DateTimeField("envoyé pour validation le", null=True, blank=True)
+    valide_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                   related_name="+", verbose_name="validé ou refusé par")
+    valide_le = models.DateTimeField("validé ou refusé le", null=True, blank=True)
+    commentaire = models.TextField("commentaire du promoteur", blank=True)
+    paye_par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+                                 related_name="+", verbose_name="payé par")
+    date_paiement = models.DateField("payé le", null=True, blank=True)
+    mode_paiement = models.CharField("paiement", max_length=20, choices=MODES_PAIEMENT, blank=True)
+    modifie_le = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-mois"]
+        verbose_name = "paiement mensuel"
+        verbose_name_plural = "paiements mensuels"
+
+    def __str__(self):
+        from .services import MOIS_NOMS
+        return f"Paiement de {MOIS_NOMS[self.mois.month - 1]} {self.mois.year}"
+
+    @property
+    def total(self):
+        return sum(l.montant for l in self.lignes.all())
+
+    @property
+    def modifiable(self):
+        return self.statut in (self.BROUILLON, self.REFUSE)
+
+
+class LignePaiement(models.Model):
+    paiement = models.ForeignKey(PaiementMensuel, on_delete=models.CASCADE, related_name="lignes")
+    producteur = models.ForeignKey(Producteur, on_delete=models.PROTECT, related_name="paiements")
+    montant = models.PositiveIntegerField("montant (F CFA)")
+    motif = models.CharField(max_length=150, blank=True)
+    operation = models.OneToOneField(OperationCaisse, on_delete=models.SET_NULL, null=True, blank=True,
+                                     related_name="ligne_paiement", editable=False)
+
+    class Meta:
+        ordering = ["producteur__ordre", "producteur__nom"]
+        constraints = [models.UniqueConstraint(fields=["paiement", "producteur"], name="un_paiement_par_producteur")]
+
+    def __str__(self):
+        return f"{self.producteur} — {self.montant} F"

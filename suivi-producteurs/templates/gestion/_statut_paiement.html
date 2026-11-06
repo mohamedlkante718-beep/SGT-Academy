@@ -1,0 +1,1 @@
+<span class="pill {% if p.statut == 'paye' %}up{% elif p.statut == 'refuse' %}down{% elif p.statut == 'valide' %}up{% elif p.statut == 'a_valider' %}new{% else %}flat{% endif %}">{{ p.get_statut_display }}</span>

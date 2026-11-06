@@ -734,3 +734,82 @@ class AccesReglagesTests(TestCase):
         self.client.login(username="chef", password="motdepasse")
         self.assertEqual(self.client.get(reverse("admin:index")).status_code, 200)
         self.assertContains(self.client.get(reverse("tableau")), "Réglages")
+
+
+class PaiementsMensuelsTests(TestCase):
+    """Le comptable prépare, le promoteur valide ou refuse, le comptable paie (sortie de caisse)."""
+
+    def setUp(self):
+        from django.contrib.auth.models import Group
+        self.a = creer_producteur("Awa", "70000001")
+        self.b = creer_producteur("Bina", "70000002")
+        U = get_user_model()
+        self.comptable = U.objects.create_user("compta", password="motdepasse", is_staff=True)
+        self.comptable.groups.add(Group.objects.get(name="Comptable"))
+        self.promoteur = U.objects.create_user("pdg", password="motdepasse", is_staff=True)
+        self.promoteur.groups.add(Group.objects.get(name="Promoteur"))
+        self.url = reverse("paiement_mois", args=["2026-10"])
+
+    def preparer(self, action="envoyer", **montants):
+        donnees = {"action": action}
+        for p, m in montants.items():
+            pk = getattr(self, p).pk
+            donnees.update({f"p_{pk}": "1", f"m_{pk}": m, f"o_{pk}": "Prime"})
+        return self.client.post(self.url, donnees)
+
+    def test_circuit_complet(self):
+        from .models import OperationCaisse, PaiementMensuel
+        self.client.login(username="compta", password="motdepasse")
+        self.assertContains(self.client.get(self.url), "Awa")
+        self.preparer(a="50 000", b="30000")
+        p = PaiementMensuel.objects.get(mois=date(2026, 10, 1))
+        self.assertEqual((p.statut, p.total, p.prepare_par), (PaiementMensuel.A_VALIDER, 80_000, self.comptable))
+        # Le comptable ne peut pas valider lui-même.
+        self.client.post(self.url, {"action": "valider"})
+        p.refresh_from_db()
+        self.assertEqual(p.statut, PaiementMensuel.A_VALIDER)
+        # Le promoteur refuse avec un commentaire…
+        self.client.login(username="pdg", password="motdepasse")
+        self.assertContains(self.client.get(reverse("tableau")), 'class="badge">1<')
+        self.client.post(self.url, {"action": "refuser", "commentaire": "Bina : 25 000 seulement"})
+        p.refresh_from_db()
+        self.assertEqual((p.statut, p.valide_par), (PaiementMensuel.REFUSE, self.promoteur))
+        # … le comptable corrige et renvoie, le promoteur valide.
+        self.client.login(username="compta", password="motdepasse")
+        self.preparer(a="50000", b="25000")
+        self.client.login(username="pdg", password="motdepasse")
+        self.client.post(self.url, {"action": "valider"})
+        p.refresh_from_db()
+        self.assertEqual((p.statut, p.total), (PaiementMensuel.VALIDE, 75_000))
+        # Le promoteur ne peut pas modifier les montants après coup.
+        self.preparer(a="999999")
+        self.assertEqual(p.lignes.get(producteur=self.a).montant, 50_000)
+        # Le comptable paie : deux sorties de caisse.
+        self.client.login(username="compta", password="motdepasse")
+        self.client.post(self.url, {"action": "payer", "date_paiement": "2026-11-05", "mode_paiement": "orange_money"})
+        p.refresh_from_db()
+        self.assertEqual(p.statut, PaiementMensuel.PAYE)
+        ops = OperationCaisse.objects.filter(categorie__nom="Paiement des producteurs")
+        self.assertEqual(sorted(o.montant for o in ops), [25_000, 50_000])
+        self.assertEqual({o.tiers for o in ops}, {"Awa", "Bina"})
+        self.assertContains(self.client.get(reverse("paiement_imprimer", args=["2026-10"])), "Signature du producteur")
+
+    def test_mois_suivant_repris_et_montant_obligatoire(self):
+        from .models import PaiementMensuel
+        self.client.login(username="compta", password="motdepasse")
+        self.preparer(action="enregistrer", a="40000")
+        r = self.client.get(reverse("paiement_mois", args=["2026-11"]))
+        self.assertContains(r, "repris du dernier paiement")
+        self.assertContains(r, 'value="40000"')
+        self.url = reverse("paiement_mois", args=["2026-11"])
+        r = self.preparer(a="")
+        self.assertContains(r, "Indiquez le montant")
+        self.assertFalse(PaiementMensuel.objects.filter(mois=date(2026, 11, 1)).exists())
+
+    def test_sans_role_on_consulte_seulement(self):
+        get_user_model().objects.create_user("autre", password="motdepasse", is_staff=True)
+        self.client.login(username="autre", password="motdepasse")
+        self.assertContains(self.client.get(reverse("paiements")), "seulement consulter")
+        self.preparer(a="10000")
+        from .models import PaiementMensuel
+        self.assertFalse(PaiementMensuel.objects.exists())

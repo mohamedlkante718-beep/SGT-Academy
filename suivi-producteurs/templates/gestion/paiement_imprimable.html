@@ -1,0 +1,39 @@
+{% load static suivi %}<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>État de paiement {{ sigle }} — {{ titre }}</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="{% static 'css/app.css' %}">
+<link rel="stylesheet" href="{% static 'css/impression.css' %}">
+<style>.signature { width: 30%; } tbody td { height: 34px; } .visas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; } .visas div { border: 1px solid var(--line); border-radius: 8px; padding: 10px; min-height: 90px; }</style>
+</head>
+<body class="imprimable">
+<div class="barre-impression">
+  <a class="btn" href="{{ retour }}">‹ Retour</a>
+  <button class="btn primary" type="button" onclick="window.print()">Imprimer ou enregistrer en PDF</button>
+</div>
+<main class="page">
+  <header class="entete-rapport">
+    {% if logo %}<img class="logo-rapport" src="{{ logo }}" alt="Logo {{ sigle }}">{% endif %}
+    <div class="entete-titre">
+      <p class="surtitre">{{ sigle }} · {{ organisation }}</p>
+      <h1>État de paiement des producteurs — {{ titre }}</h1>
+      <p class="muted">État : {{ paiement.get_statut_display }}{% if paiement.date_paiement %} · payé le {{ paiement.date_paiement|date:"j F Y" }} ({{ paiement.get_mode_paiement_display|lower }}){% endif %}</p>
+    </div>
+    <p class="muted small">Établi le {{ genere_le|date:"j F Y à H:i" }}</p>
+  </header>
+  <div class="tablebox"><table>
+    <thead><tr><th>N°</th><th>Producteur</th><th>Téléphone</th><th>Motif</th><th class="num">Montant (F CFA)</th><th class="signature">Signature du producteur</th></tr></thead>
+    <tbody>{% for l in lignes %}<tr><td>{{ forloop.counter }}</td><td>{{ l.producteur.nom }}</td><td>{% if not l.producteur.telephone|slice:":11" == "A-COMPLETER" %}{{ l.producteur.telephone }}{% endif %}</td><td>{{ l.motif }}</td><td class="num">{{ l.montant|nombre }}</td><td></td></tr>{% endfor %}</tbody>
+    <tfoot><tr><td></td><td>Total</td><td></td><td></td><td class="num">{{ paiement.total|nombre }}</td><td></td></tr></tfoot>
+  </table></div>
+  <div class="visas">
+    <div><b>Préparé par (comptable)</b><br>{{ paiement.prepare_par.first_name|default:paiement.prepare_par.username|default:"" }}</div>
+    <div><b>Validé par (promoteur)</b><br>{% if paiement.statut == "valide" or paiement.statut == "paye" %}{{ paiement.valide_par.first_name|default:paiement.valide_par.username }} le {{ paiement.valide_le|date:"d/m/Y" }}{% endif %}</div>
+    <div><b>Payé par</b><br>{% if paiement.paye_par %}{{ paiement.paye_par.first_name|default:paiement.paye_par.username }} le {{ paiement.date_paiement|date:"d/m/Y" }}{% endif %}</div>
+  </div>
+</main>
+</body>
+</html>
