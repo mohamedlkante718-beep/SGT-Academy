@@ -813,3 +813,38 @@ class PaiementsMensuelsTests(TestCase):
         self.preparer(a="10000")
         from .models import PaiementMensuel
         self.assertFalse(PaiementMensuel.objects.exists())
+
+
+class PretGroupeTests(TestCase):
+    """Un même prêt accordé d'un coup à plusieurs producteurs cochés, anciens producteurs compris."""
+
+    def setUp(self):
+        get_user_model().objects.create_user("chef", password="motdepasse", is_staff=True, is_superuser=True)
+        self.client.login(username="chef", password="motdepasse")
+        self.a = creer_producteur("Awa", "70000001")
+        self.b = creer_producteur("Bina", "70000002")
+        self.c = creer_producteur("Coumba", "70000003")
+        self.c.actif = False
+        self.c.save()
+
+    def test_cases_a_cocher_avec_anciens_producteurs(self):
+        r = self.client.get(reverse("prets"))
+        self.assertContains(r, 'type="checkbox" name="pret-producteur"', count=3)
+        self.assertContains(r, "Coumba (ne produit plus)")
+        self.assertContains(r, 'id="filtre-producteurs"')
+
+    def test_un_pret_par_producteur_coche(self):
+        r = self.client.post(reverse("prets"), {
+            "action": "accorder", "pret-producteur": [self.a.pk, self.c.pk], "pret-date": "2026-11-20",
+            "pret-montant": "50000", "pret-taux_interet": "10", "pret-echeance": "2027-02-20",
+            "pret-description": "Aliment volaille"}, follow=True)
+        prets = Pret.objects.filter(type="pret").order_by("producteur__nom")
+        self.assertEqual([(p.producteur.nom, p.montant, p.total_du, p.description) for p in prets],
+                         [("Awa", 50_000, 55_000, "Aliment volaille"), ("Coumba", 50_000, 55_000, "Aliment volaille")])
+        self.assertContains(r, "2 prêts de 50")
+
+    def test_au_moins_un_producteur(self):
+        r = self.client.post(reverse("prets"), {"action": "accorder", "pret-date": "2026-11-20",
+                                                "pret-montant": "50000", "pret-taux_interet": "0"})
+        self.assertContains(r, "Cochez au moins un producteur")
+        self.assertFalse(Pret.objects.exists())

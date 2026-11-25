@@ -178,3 +178,11 @@ details.mois .histo { padding: 0 16px; }
 table.paie input[type=text] { width: 100%; min-width: 110px; }
 table.paie td.coche { width: 32px; text-align: center; }
 table.paie tr.non-coche td:not(.coche) { opacity: 0.55; }
+
+/* Accorder un prêt à plusieurs producteurs : cases à cocher */
+.liste-producteurs input[type=search] { margin-bottom: 8px; }
+.cases-producteurs { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; max-height: 300px; overflow-y: auto; padding: 4px; border: 1px solid var(--line); border-radius: 10px; }
+.case-prod { display: flex; gap: 8px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card, #fff); cursor: pointer; text-transform: none; letter-spacing: 0; font-weight: 400; font-size: .95rem; color: var(--ink); }
+.case-prod input { width: auto; margin: 0; }
+.case-prod.cochee { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.case-prod[hidden] { display: none; }

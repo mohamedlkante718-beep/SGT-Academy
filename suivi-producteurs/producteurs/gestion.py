@@ -145,13 +145,20 @@ def prets(request):
         return redirect("prets")
     action = request.POST.get("action")
     form = PretForm(request.POST if action == "accorder" else None,
-                    initial={"date": date.today(), "producteur": request.GET.get("producteur")}, prefix="pret")
+                    initial={"date": date.today(), "producteur": [request.GET.get("producteur")]}, prefix="pret")
     rembt = RemboursementForm(request.POST if action == "rembourser" else None,
                               initial={"date": date.today()}, prefix="rembt")
     if action == "accorder" and form.is_valid():
-        pret = form.save()
-        messages.success(request, f"Prêt de {_f(pret.montant)} F accordé à {pret.producteur.nom} "
-                                  f"(à rembourser : {_f(pret.total_du)} F).")
+        crees = form.save()
+        pret = crees[0]
+        noms = ", ".join(p.producteur.nom for p in crees)
+        if len(crees) == 1:
+            messages.success(request, f"Prêt de {_f(pret.montant)} F accordé à {noms} "
+                                      f"(à rembourser : {_f(pret.total_du)} F).")
+        else:
+            messages.success(request, f"{len(crees)} prêts de {_f(pret.montant)} F accordés "
+                                      f"(total {_f(pret.montant * len(crees))} F, à rembourser chacun : "
+                                      f"{_f(pret.total_du)} F) : {noms}.")
         return redirect("prets")
     if action == "rembourser" and rembt.is_valid():
         r = rembt.save()

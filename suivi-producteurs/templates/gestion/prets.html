@@ -20,8 +20,20 @@
     <h2>Accorder un prêt</h2>
     <form method="post" class="card formulaire">
       {% csrf_token %}<input type="hidden" name="action" value="accorder">
-      {% for champ in form %}{% include "gestion/_champ.html" %}{% endfor %}
+      {% with champ=form.producteur %}
+      <div class="field liste-producteurs{% if champ.errors %} erreur{% endif %}" id="choix-producteurs">
+        <label for="filtre-producteurs">{{ champ.label }}</label>
+        <input type="search" id="filtre-producteurs" placeholder="Tapez un nom pour le trouver…" autocomplete="off">
+        <div class="cases-producteurs">
+          {% for c in champ %}<label class="case-prod">{{ c.tag }} <span>{{ c.choice_label }}</span></label>{% endfor %}
+        </div>
+        <span class="aide"><b id="nb-coches">0</b> personne(s) cochée(s) · <a href="#" id="tout-decocher">Tout décocher</a><br>{{ champ.help_text }}</span>
+        {{ champ.errors }}
+      </div>
+      {% endwith %}
+      {% for champ in form %}{% if champ.name != "producteur" %}{% include "gestion/_champ.html" %}{% endif %}{% endfor %}
       <p class="muted small">Le montant à rembourser = montant prêté + intérêts. Exemple : 100 000 F à 10 % → 110 000 F à rembourser.</p>
+      <p class="small" id="total-prets" hidden></p>
       <div class="row"><button class="btn primary" type="submit">Accorder le prêt</button></div>
     </form>
   </section>
@@ -89,4 +101,34 @@
     </tbody>
   </table></div>
 </section>
+{% endblock %}
+{% block scripts %}
+<script>
+/* Accorder un prêt : trouver un nom en le tapant, compter les personnes cochées et le total prêté. */
+(function () {
+  var zone = document.getElementById("choix-producteurs");
+  if (!zone) return;
+  var filtre = document.getElementById("filtre-producteurs"), cases = zone.querySelectorAll(".case-prod");
+  var montant = document.getElementById("id_pret-montant"), total = document.getElementById("total-prets");
+  function sansAccents(t) { return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase(); }
+  function compter() {
+    var n = zone.querySelectorAll("input:checked").length, m = parseInt((montant.value || "").replace(/\s/g, ""), 10) || 0;
+    document.getElementById("nb-coches").textContent = n;
+    cases.forEach(function (c) { c.classList.toggle("cochee", c.querySelector("input").checked); });
+    total.hidden = !(n > 1 && m);
+    total.innerHTML = "<b>" + n + " prêts</b> de " + m.toLocaleString("fr-FR") + " F : total prêté <b>" + (n * m).toLocaleString("fr-FR") + " F</b>.";
+  }
+  filtre.addEventListener("input", function () {
+    var q = sansAccents(filtre.value.trim());
+    cases.forEach(function (c) { c.hidden = q && sansAccents(c.textContent).indexOf(q) < 0; });
+  });
+  filtre.addEventListener("keydown", function (e) { if (e.key === "Enter") e.preventDefault(); });
+  document.getElementById("tout-decocher").addEventListener("click", function (e) {
+    e.preventDefault(); zone.querySelectorAll("input:checked").forEach(function (i) { i.checked = false; }); compter();
+  });
+  zone.addEventListener("change", compter);
+  montant.addEventListener("input", compter);
+  compter();
+})();
+</script>
 {% endblock %}

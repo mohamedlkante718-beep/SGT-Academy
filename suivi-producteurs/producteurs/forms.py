@@ -201,16 +201,34 @@ VentesFormSet = inlineformset_factory(
              "quantite": forms.NumberInput(attrs={"inputmode": "decimal", "step": "any", "min": 0})})
 
 
+class ProducteursACocher(forms.ModelMultipleChoiceField):
+    """Tous les producteurs en cases à cocher, ceux qui ne produisent plus compris (marqués)."""
+
+    widget = forms.CheckboxSelectMultiple
+
+    def __init__(self, **kwargs):
+        super().__init__(queryset=Producteur.objects.order_by("-actif", "nom"), **kwargs)
+
+    def label_from_instance(self, p):
+        return p.nom if p.actif else f"{p.nom} (ne produit plus)"
+
+
 class PretForm(forms.ModelForm):
-    """Accorder un prêt ou une avance à un producteur."""
+    """Accorder un prêt ou une avance à un ou plusieurs producteurs : un prêt est créé pour chacun."""
+
+    field_order = ["producteur", "date", "montant", "taux_interet", "echeance", "description"]
+    producteur = ProducteursACocher(
+        label="Producteurs", error_messages={"required": "Cochez au moins un producteur."},
+        help_text="Cochez toutes les personnes qui reçoivent ce prêt. Chacune reçoit le montant indiqué.")
 
     class Meta:
         model = Pret
-        fields = ["producteur", "date", "montant", "taux_interet", "echeance", "description"]
+        # « producteur » (plusieurs cases à cocher) n'est pas un champ du modèle : save() crée un prêt par case.
+        fields = ["date", "montant", "taux_interet", "echeance", "description"]
         widgets = {"date": DATE, "echeance": DATE, "montant": MONTANT,
                    "taux_interet": forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.5", "min": 0}),
                    "description": forms.TextInput(attrs={"placeholder": "Ex. achat de 2 sacs d'aliment"})}
-        labels = {"montant": "Montant prêté (F CFA)", "description": "Objet du prêt"}
+        labels = {"montant": "Montant prêté à chacun (F CFA)", "description": "Objet du prêt"}
 
     def clean(self):
         data = super().clean()
@@ -218,9 +236,12 @@ class PretForm(forms.ModelForm):
             self.add_error("echeance", "L'échéance doit être après la date du prêt.")
         return data
 
+    @transaction.atomic
     def save(self, commit=True):
-        self.instance.type = Pret.TYPE_PRET
-        return super().save(commit)
+        """Crée un prêt par producteur coché et renvoie la liste des prêts."""
+        champs = {f: self.cleaned_data.get(f) for f in ("date", "montant", "taux_interet", "echeance", "description")}
+        return [Pret.objects.create(producteur=p, type=Pret.TYPE_PRET, **champs)
+                for p in self.cleaned_data["producteur"]]
 
 
 class PretChoix(forms.ModelChoiceField):

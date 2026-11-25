@@ -121,7 +121,8 @@ déconnecter tant qu'une fiche est en attente. Les pages de l'administrateur et 
 l'administrateur peut la supprimer (lien « Supprimer cette fiche » en bas de la fiche du producteur). Une page demande
 toujours de confirmer. Le responsable ne peut rien supprimer.
 
-**Prêts** (menu **Prêts**) : « Accorder un prêt » (producteur, montant, **taux d'intérêt**, **date d'échéance**,
+**Prêts** (menu **Prêts**) : « Accorder un prêt » (cochez **un ou plusieurs producteurs**, y compris ceux qui
+ne produisent plus ; tapez un nom pour le trouver vite ; chacun reçoit le même montant), montant, **taux d'intérêt**, **date d'échéance**,
 objet), puis « Enregistrer un remboursement » en choisissant le prêt concerné. La page affiche le total prêté, les
 intérêts attendus, le **% remboursé et le % non remboursé**, le reste dû et les **prêts en retard** (échéance dépassée).
 
@@ -182,7 +183,7 @@ Le tableau de bord garde l'export CSV de la semaine et un lien direct vers le ra
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_fiches_excel && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 64 tests
+python manage.py test producteurs   # 67 tests
 ```
 
 ## À venir
