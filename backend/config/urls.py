@@ -2,11 +2,14 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
+from apps.common.views import export_backup
+
 admin.site.site_header = "SGT Academy"
 admin.site.site_title = "SGT Academy"
 admin.site.index_title = "Administration"
 
 urlpatterns = [
+    path("admin/export-backup/", export_backup, name="export-backup"),
     path("admin/", admin.site.urls),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
