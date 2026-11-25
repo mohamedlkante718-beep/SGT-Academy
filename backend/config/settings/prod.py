@@ -1,5 +1,5 @@
 from .base import *  # noqa
-from decouple import config
+from decouple import Csv, config
 
 DEBUG = config("DEBUG", default=False, cast=bool)
 
@@ -9,8 +9,13 @@ DEBUG = config("DEBUG", default=False, cast=bool)
 # de session. À restreindre à une liste explicite si des cookies apparaissent.
 CORS_ALLOW_ALL_ORIGINS = True
 
+# CSRF_TRUSTED_ORIGINS : détecté automatiquement sur Railway (variable fournie
+# par la plateforme), sinon à renseigner explicitement (ex: PythonAnywhere).
 _railway_domain = config("RAILWAY_PUBLIC_DOMAIN", default="")
-if _railway_domain:
+_csrf_trusted = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
+if _csrf_trusted:
+    CSRF_TRUSTED_ORIGINS = _csrf_trusted
+elif _railway_domain:
     CSRF_TRUSTED_ORIGINS = [f"https://{_railway_domain}"]
 
 SECURE_SSL_REDIRECT = True
