@@ -18,14 +18,24 @@ class UserRoleInline(admin.TabularInline):
 class UserAdmin(DjangoUserAdmin):
     model = User
     ordering = ("-date_joined",)
-    list_display = ("email", "first_name", "last_name", "country", "is_active", "is_staff")
-    list_filter = ("is_active", "is_staff", "country")
+    list_display = ("email", "first_name", "last_name", "country", "is_active", "is_staff", "email_verified")
+    list_filter = ("is_active", "is_staff", "email_verified", "country")
     search_fields = ("email", "first_name", "last_name", "phone")
     inlines = [ProfileInline, UserRoleInline]
 
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         ("Informations personnelles", {"fields": ("first_name", "last_name", "phone", "country")}),
+        (
+            "Vérification de l'email",
+            {
+                "fields": ("email_verified",),
+                "description": (
+                    "Ne cochez manuellement que si l'apprenant n'a jamais reçu son code "
+                    "(ex : panne d'envoi d'email) — normalement il se vérifie lui-même."
+                ),
+            },
+        ),
         ("Permissions", {"fields": ("is_active", "is_staff", "is_superuser", "groups", "user_permissions")}),
         ("Dates", {"fields": ("last_login", "date_joined")}),
     )

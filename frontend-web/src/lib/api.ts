@@ -170,6 +170,20 @@ export function register(payload: RegisterPayload) {
   });
 }
 
+export function verifyEmail(email: string, code: string) {
+  return apiFetch("/auth/verify-email/", {
+    method: "POST",
+    body: JSON.stringify({ email, code }),
+  });
+}
+
+export function resendVerificationCode(email: string) {
+  return apiFetch("/auth/resend-verification/", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
 export function purchaseCourse(slug: string, accessToken: string) {
   return apiFetch<{ reference: string; status: string; amount: string; currency: string }>(
     `/courses/${slug}/purchase/`,

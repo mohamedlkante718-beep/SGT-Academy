@@ -56,6 +56,18 @@ class User(AbstractBaseUser, PermissionsMixin, SoftDeleteModel):
     is_staff = models.BooleanField(default=False, verbose_name="membre du personnel")
     date_joined = models.DateTimeField(auto_now_add=True, verbose_name="date d'inscription")
 
+    # Vérification de l'adresse email par code à l'inscription. Le code n'est
+    # jamais comparé globalement : on retrouve d'abord LE compte par son email,
+    # puis on compare le code uniquement sur cette fiche précise — le code
+    # d'un compte ne peut donc jamais valider un autre compte.
+    email_verified = models.BooleanField(default=False, verbose_name="email vérifié")
+    email_verification_code = models.CharField(
+        max_length=6, blank=True, null=True, verbose_name="code de vérification"
+    )
+    email_verification_expires_at = models.DateTimeField(
+        blank=True, null=True, verbose_name="expiration du code"
+    )
+
     roles = models.ManyToManyField("Role", through="UserRole", related_name="users", verbose_name="rôles")
 
     objects = UserManager()
@@ -79,6 +91,18 @@ class User(AbstractBaseUser, PermissionsMixin, SoftDeleteModel):
 
     def has_role(self, role_name: str) -> bool:
         return self.roles.filter(name=role_name).exists()
+
+    def generate_email_verification_code(self) -> str:
+        """Génère un nouveau code à 6 chiffres, valable 30 minutes, et l'enregistre."""
+        import secrets
+
+        from django.utils import timezone
+
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        self.email_verification_code = code
+        self.email_verification_expires_at = timezone.now() + timezone.timedelta(minutes=30)
+        self.save(update_fields=["email_verification_code", "email_verification_expires_at"])
+        return code
 
 
 class Role(models.Model):

@@ -1,4 +1,5 @@
 from django.contrib.auth.password_validation import validate_password
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Role, User, UserRole
@@ -9,7 +10,10 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["id", "email", "first_name", "last_name", "phone", "country", "roles", "date_joined"]
+        fields = [
+            "id", "email", "first_name", "last_name", "phone", "country",
+            "roles", "date_joined", "email_verified",
+        ]
         read_only_fields = fields
 
 
@@ -34,3 +38,56 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         UserRole.objects.get_or_create(user=user, role=learner_role)
         return user
+
+
+class VerifyEmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+
+    def validate(self, attrs):
+        # On retrouve d'abord LE compte par son email, puis on compare le code
+        # uniquement sur cette fiche précise : le code d'un compte ne peut
+        # donc jamais valider le compte d'un autre, même s'il le connaît.
+        try:
+            user = User.objects.get(email__iexact=attrs["email"])
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"email": "Aucun compte avec cet email."})
+
+        if user.email_verified:
+            raise serializers.ValidationError("Cet email est déjà vérifié.")
+
+        if not user.email_verification_code or not user.email_verification_expires_at:
+            raise serializers.ValidationError("Aucun code en attente — demandez un nouvel envoi.")
+
+        if timezone.now() > user.email_verification_expires_at:
+            raise serializers.ValidationError("Ce code a expiré — demandez un nouvel envoi.")
+
+        if attrs["code"] != user.email_verification_code:
+            raise serializers.ValidationError({"code": "Code incorrect."})
+
+        attrs["user"] = user
+        return attrs
+
+    def save(self):
+        user = self.validated_data["user"]
+        user.email_verified = True
+        user.email_verification_code = None
+        user.email_verification_expires_at = None
+        user.save(update_fields=["email_verified", "email_verification_code", "email_verification_expires_at"])
+        return user
+
+
+class ResendVerificationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            self._user = User.objects.get(email__iexact=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Aucun compte avec cet email.")
+        if self._user.email_verified:
+            raise serializers.ValidationError("Cet email est déjà vérifié.")
+        return value
+
+    def save(self):
+        return self._user
