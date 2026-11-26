@@ -186,3 +186,8 @@ table.paie tr.non-coche td:not(.coche) { opacity: 0.55; }
 .case-prod input { width: auto; margin: 0; }
 .case-prod.cochee { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
 .case-prod[hidden] { display: none; }
+
+/* Bouton d'installation de l'application (PC et téléphone) */
+.btn.installer { font-size: .9rem; padding: 7px 12px; border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.btn.installer[hidden] { display: none; }
+#aide-installation[hidden] { display: none; }

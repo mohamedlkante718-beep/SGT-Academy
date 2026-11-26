@@ -848,3 +848,15 @@ class PretGroupeTests(TestCase):
                                                 "pret-montant": "50000", "pret-taux_interet": "0"})
         self.assertContains(r, "Cochez au moins un producteur")
         self.assertFalse(Pret.objects.exists())
+
+
+class InstallationTests(TestCase):
+    def test_bouton_installer_et_manifeste(self):
+        r = self.client.get(reverse("connexion"))
+        self.assertContains(r, 'id="installer"')
+        self.assertContains(r, "js/installer.js")
+        self.assertContains(r, 'id="aide-installation"')
+        m = self.client.get(reverse("manifest")).json()
+        self.assertEqual((m["id"], m["display"], m["start_url"]), ("/", "standalone", "/"))
+        self.assertEqual({i["sizes"] for i in m["icons"]}, {"192x192", "512x512"})
+        self.assertIn("installer.js", self.client.get(reverse("service_worker")).content.decode())

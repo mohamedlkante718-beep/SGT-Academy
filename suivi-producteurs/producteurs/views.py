@@ -452,6 +452,7 @@ def manifest(request):
         "name": f"Suivi des producteurs {settings.ORGANISATION_SIGLE}",
         "short_name": f"Suivi {settings.ORGANISATION_SIGLE}",
         "description": settings.ORGANISATION_NOM,
+        "id": "/",
         "start_url": "/",
         "scope": "/",
         "display": "standalone",

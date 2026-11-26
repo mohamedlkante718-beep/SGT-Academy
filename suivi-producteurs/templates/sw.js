@@ -2,9 +2,9 @@
    - fichiers de style et scripts : gardés sur le téléphone ;
    - pages du producteur (accueil et fiches) : réseau d'abord, sinon la dernière version gardée ;
    - l'envoi d'une fiche sans réseau est mis en attente par static/js/hors_ligne.js. */
-const STATIQUE = "ciaf-statique-v5";
+const STATIQUE = "ciaf-statique-v6";
 const PAGES = "ciaf-pages-v1";  // garder le même nom : les pages déjà gardées restent disponibles
-const A_GARDER = ["/static/css/app.css", "/static/js/saisie.js", "/static/js/hors_ligne.js"];
+const A_GARDER = ["/static/css/app.css", "/static/js/saisie.js", "/static/js/hors_ligne.js", "/static/js/installer.js"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(STATIQUE).then((c) => c.addAll(A_GARDER)).catch(() => {}));

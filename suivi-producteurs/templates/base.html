@@ -9,6 +9,8 @@
 <link rel="manifest" href="{% url 'manifest' %}">
 <link rel="icon" href="{% static 'icons/icone-192.png' %}">
 <link rel="apple-touch-icon" href="{% static 'icons/icone-192.png' %}">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Suivi {{ sigle }}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="{% static 'css/app.css' %}">
@@ -16,6 +18,7 @@
 <body class="{% block corps %}{% endblock %}">
 <header class="top"><div class="wrap">
   <a class="brand{% if logo %} avec-logo{% endif %}" href="{% url 'accueil' %}">{% if logo %}<img class="logo" src="{{ logo }}" alt="Logo {{ sigle }}">{% endif %}<span class="brand-texte"><b>Suivi des producteurs</b><span><abbr title="{{ organisation }}">{{ sigle }}</abbr>{% block sous_titre %}{% endblock %}</span></span></a>
+  <button type="button" class="btn installer" id="installer" hidden>📲 Installer l'application</button>
   {% if user.is_authenticated %}
   <nav class="tabs" aria-label="Menu">
     {% block menu %}{% endblock %}
@@ -24,6 +27,10 @@
   {% endif %}
 </div></header>
 <main><div class="wrap">
+  <div class="notice info" id="aide-installation" hidden>
+    <b>Installer sur iPhone ou iPad :</b> dans Safari, touchez le bouton <b>Partager</b> (carré avec une flèche vers le haut),
+    puis <b>« Sur l'écran d'accueil »</b>, puis <b>« Ajouter »</b>. L'icône « Suivi {{ sigle }} » apparaît comme une application.
+  </div>
   {% if messages %}<ul class="messages">{% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}</ul>{% endif %}
   {% block contenu %}{% endblock %}
 </div></main>
@@ -31,6 +38,7 @@
 <script>
 if ("serviceWorker" in navigator) { navigator.serviceWorker.register("{% url 'service_worker' %}").catch(function () {}); }
 </script>
+<script src="{% static 'js/installer.js' %}"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

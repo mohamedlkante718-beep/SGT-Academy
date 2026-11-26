@@ -94,8 +94,11 @@ Cochez **ses produits**, choisissez son **responsable**, saisissez son **télép
 du site, son numéro et son code. Les 12 producteurs chargés depuis les fichiers Excel ont un numéro provisoire
 « A-COMPLETER-… » : remplacez-le par leur vrai numéro et donnez-leur un code PIN.
 
-**Installer sur le téléphone** : le producteur ouvre l'adresse du site dans Chrome, se connecte, puis choisit
-**⋮ → Ajouter à l'écran d'accueil**. Une icône « Suivi CIAF » apparaît comme une application.
+**Installer l'application (téléphone ou ordinateur)** : ouvrez l'adresse du site et cliquez sur le bouton
+**« 📲 Installer l'application »** en haut de la page, puis **« Installer »**. Une icône « Suivi CIAF/CE » apparaît sur
+l'écran d'accueil du téléphone, ou sur le bureau et dans le menu Démarrer de l'ordinateur (Chrome ou Edge).
+Sur iPhone / iPad, le bouton explique la marche à suivre dans Safari (Partager → « Sur l'écran d'accueil »).
+Le bouton disparaît une fois l'application installée.
 
 **Ajouter un secteur ou un produit** : menu **Secteurs et produits**. Cliquez sur **Ajouter**
 pour un nouveau secteur, ou ouvrez un secteur et remplissez une ligne vide en bas (nom, unité, « se compte », « a une valeur »).
@@ -183,7 +186,7 @@ Le tableau de bord garde l'export CSV de la semaine et un lien direct vers le ra
 pip install -r requirements.txt
 python manage.py migrate && python manage.py charger_fiches_excel && python manage.py createsuperuser
 python manage.py runserver
-python manage.py test producteurs   # 67 tests
+python manage.py test producteurs   # 68 tests
 ```
 
 ## À venir
